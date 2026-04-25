@@ -1,0 +1,148 @@
+{
+  "entities": {
+    "User": {
+      "title": "User Profile",
+      "description": "Premium user account information",
+      "type": "object",
+      "properties": {
+        "uid": { "type": "string" },
+        "email": { "type": "string" },
+        "displayName": { "type": "string" },
+        "photoURL": { "type": "string" },
+        "businessName": { "type": "string" },
+        "isAdmin": { "type": "boolean" },
+        "createdAt": { "type": "string", "format": "date-time" }
+      },
+      "required": ["uid", "email"]
+    },
+    "Product": {
+      "title": "Cosmetic Product",
+      "description": "Stock items for Boticário, Mary Kay, and others",
+      "type": "object",
+      "properties": {
+        "id": { "type": "string" },
+        "name": { "type": "string" },
+        "brand": { "type": "string", "enum": ["O Boticário", "Mary Kay", "Outros"] },
+        "category": { "type": "string" },
+        "code": { "type": "string" },
+        "buyPrice": { "type": "number" },
+        "sellPrice": { "type": "number" },
+        "quantity": { "type": "number" },
+        "minQuantity": { "type": "number" },
+        "imageUrl": { "type": "string" },
+        "observations": { "type": "string" },
+        "updatedAt": { "type": "string", "format": "date-time" }
+      },
+      "required": ["name", "brand", "sellPrice", "quantity"]
+    },
+    "Client": {
+      "title": "Client",
+      "description": "Customer information and history",
+      "type": "object",
+      "properties": {
+        "id": { "type": "string" },
+        "name": { "type": "string" },
+        "phone": { "type": "string" },
+        "address": { "type": "string" },
+        "observations": { "type": "string" },
+        "totalDebt": { "type": "number" },
+        "createdAt": { "type": "string", "format": "date-time" }
+      },
+      "required": ["name"]
+    },
+    "Sale": {
+      "title": "Sale Record",
+      "description": "Transaction details",
+      "type": "object",
+      "properties": {
+        "id": { "type": "string" },
+        "clientId": { "type": "string" },
+        "clientName": { "type": "string" },
+        "productId": { "type": "string" },
+        "productName": { "type": "string" },
+        "quantity": { "type": "number" },
+        "totalValue": { "type": "number" },
+        "paymentMethod": { "type": "string" },
+        "brand": { "type": "string" },
+        "date": { "type": "string", "format": "date-time" }
+      },
+      "required": ["productId", "quantity", "totalValue", "paymentMethod"]
+    },
+    "Consortium": {
+      "title": "Consortium / Plan",
+      "description": "Installment plan for products or cash",
+      "type": "object",
+      "properties": {
+        "id": { "type": "string" },
+        "clientId": { "type": "string" },
+        "clientName": { "type": "string" },
+        "totalValue": { "type": "number" },
+        "entryValue": { "type": "number" },
+        "installmentsCount": { "type": "number" },
+        "dueDay": { "type": "number" },
+        "status": { "type": "string", "enum": ["active", "completed", "cancelled"] },
+        "createdAt": { "type": "string", "format": "date-time" }
+      },
+      "required": ["clientId", "totalValue", "installmentsCount", "dueDay"]
+    },
+    "Installment": {
+      "title": "Installment",
+      "description": "Individual payment for a consortium",
+      "type": "object",
+      "properties": {
+        "id": { "type": "string" },
+        "consortiumId": { "type": "string" },
+        "number": { "type": "number" },
+        "dueDate": { "type": "string", "format": "date-time" },
+        "value": { "type": "number" },
+        "status": { "type": "string", "enum": ["pending", "paid", "overdue"] },
+        "paidAt": { "type": "string", "format": "date-time" }
+      },
+      "required": ["consortiumId", "number", "dueDate", "value", "status"]
+    },
+    "Transaction": {
+      "title": "Cashier Transaction",
+      "description": "General entries and exits for cashiers",
+      "type": "object",
+      "properties": {
+        "id": { "type": "string" },
+        "type": { "type": "string", "enum": ["entry", "exit"] },
+        "brand": { "type": "string", "enum": ["O Boticário", "Mary Kay", "Geral"] },
+        "value": { "type": "number" },
+        "description": { "type": "string" },
+        "date": { "type": "string", "format": "date-time" }
+      },
+      "required": ["type", "brand", "value", "date"]
+    }
+  },
+  "firestore": {
+    "users/{userId}": {
+      "schema": "User",
+      "description": "User profiles"
+    },
+    "users/{userId}/inventory/{productId}": {
+      "schema": "Product",
+      "description": "Product inventory"
+    },
+    "users/{userId}/clients/{clientId}": {
+      "schema": "Client",
+      "description": "Customer list"
+    },
+    "users/{userId}/sales/{saleId}": {
+      "schema": "Sale",
+      "description": "Sales history"
+    },
+    "users/{userId}/consortiums/{consortiumId}": {
+      "schema": "Consortium",
+      "description": "Consortium plans"
+    },
+    "users/{userId}/consortiums/{consortiumId}/installments/{installmentId}": {
+      "schema": "Installment",
+      "description": "Installments for a specific consortium"
+    },
+    "users/{userId}/transactions/{transactionId}": {
+      "schema": "Transaction",
+      "description": "Cashier movements"
+    }
+  }
+}

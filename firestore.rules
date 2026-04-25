@@ -1,0 +1,146 @@
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+    // 0. Global Safety Net
+    match /{document=**} {
+      allow read, write: if false;
+    }
+
+    // --- Helpers ---
+    function isSignedIn() {
+      return request.auth != null;
+    }
+    
+    function isOwner(userId) {
+      return isSignedIn() && request.auth.uid == userId;
+    }
+
+    function isValidId(id) {
+      return id is string && id.size() <= 128 && id.matches('^[a-zA-Z0-9_\\-]+$');
+    }
+
+    function incoming() {
+      return request.resource.data;
+    }
+
+    function existing() {
+      return resource.data;
+    }
+
+    // --- Entity Validations ---
+    
+    function isValidUser(data) {
+      return data.keys().hasAll(['uid', 'email']) &&
+             data.uid == request.auth.uid &&
+             data.email is string && data.email.size() <= 200;
+    }
+
+    function isValidProduct(data) {
+      return data.keys().hasAll(['name', 'brand', 'sellPrice', 'quantity']) &&
+             data.name is string && data.name.size() <= 200 &&
+             data.brand in ['O Boticário', 'Mary Kay', 'Outros'] &&
+             data.sellPrice is number && data.sellPrice >= 0 &&
+             data.quantity is number && data.quantity >= 0;
+    }
+
+    function isValidClient(data) {
+      return data.keys().hasAll(['name']) &&
+             data.name is string && data.name.size() <= 200;
+    }
+
+    function isValidSale(data) {
+      return data.keys().hasAll(['productId', 'quantity', 'totalValue', 'paymentMethod']) &&
+             data.productId is string &&
+             data.quantity is number && data.quantity > 0 &&
+             data.totalValue is number && data.totalValue >= 0;
+    }
+
+    function isValidConsortium(data) {
+      return data.keys().hasAll(['clientId', 'totalValue', 'installmentsCount', 'dueDay']) &&
+             data.clientId is string &&
+             data.totalValue is number && data.totalValue > 0 &&
+             data.installmentsCount is number && data.installmentsCount > 0 &&
+             data.dueDay is number && data.dueDay >= 1 && data.dueDay <= 31;
+    }
+
+    function isValidInstallment(data) {
+      return data.keys().hasAll(['consortiumId', 'number', 'dueDate', 'value', 'status']) &&
+             data.consortiumId is string &&
+             data.number is number &&
+             data.value is number && data.value > 0 &&
+             data.status in ['pending', 'paid', 'overdue'];
+    }
+
+    function isValidTransaction(data) {
+      return data.keys().hasAll(['type', 'brand', 'value', 'date']) &&
+             data.type in ['entry', 'exit'] &&
+             data.brand in ['O Boticário', 'Mary Kay', 'Geral'] &&
+             data.value is number && data.value >= 0;
+    }
+
+    // --- Collections ---
+
+    match /users/{userId} {
+      allow get: if isOwner(userId);
+      allow create: if isOwner(userId) && isValidUser(incoming());
+      allow update: if isOwner(userId) && isValidUser(incoming());
+      
+      match /inventory/{productId} {
+        allow list: if isOwner(userId);
+        allow get: if isOwner(userId);
+        allow create: if isOwner(userId) && isValidProduct(incoming());
+        allow update: if isOwner(userId) && isValidProduct(incoming());
+        allow delete: if isOwner(userId);
+      }
+
+      match /clients/{clientId} {
+        allow list: if isOwner(userId);
+        allow get: if isOwner(userId);
+        allow create: if isOwner(userId) && isValidClient(incoming());
+        allow update: if isOwner(userId) && isValidClient(incoming());
+        allow delete: if isOwner(userId);
+      }
+
+      match /sales/{saleId} {
+        allow list: if isOwner(userId);
+        allow get: if isOwner(userId);
+        allow create: if isOwner(userId) && isValidSale(incoming());
+        allow update: if isOwner(userId) && isValidSale(incoming());
+        allow delete: if isOwner(userId);
+      }
+
+      match /consortiums/{consortiumId} {
+        allow list: if isOwner(userId);
+        allow get: if isOwner(userId);
+        allow create: if isOwner(userId) && isValidConsortium(incoming());
+        allow update: if isOwner(userId) && isValidConsortium(incoming());
+        allow delete: if isOwner(userId);
+
+        match /installments/{installmentId} {
+          allow list: if isOwner(userId);
+          allow get: if isOwner(userId);
+          allow create: if isOwner(userId) && isValidInstallment(incoming());
+          allow update: if isOwner(userId) && isValidInstallment(incoming());
+          allow delete: if isOwner(userId);
+        }
+      }
+
+      match /transactions/{transactionId} {
+        allow list: if isOwner(userId);
+        allow get: if isOwner(userId);
+        allow create: if isOwner(userId) && isValidTransaction(incoming());
+        allow update: if isOwner(userId) && isValidTransaction(incoming());
+        allow delete: if isOwner(userId);
+      }
+    }
+    
+    // Public Catalog Mock (Reading inventory from a specific user if shared)
+    // For now, let's allow public read of inventory if we have a custom shared flag?
+    // Or just open the specific user's inventory for the "bruna-catalogo" feature.
+    // The request says "seudominio/app/bruna-catalogo".
+    // I'll implement a logic where if a user marks a product as "public" or similar?
+    // Actually, simpler: if the client is on the catalog page, they might need access.
+    // I'll add a 'public' field to User entity or just allow inventory read for specific paths if requested.
+    // Let's assume for now the catalog uses a specific route that might need a different rule.
+  }
+}
