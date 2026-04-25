@@ -27,7 +27,10 @@ import {
 import { motion, AnimatePresence } from 'motion/react';
 import { cn } from '../lib/utils';
 
+import { useLocation } from 'react-router-dom';
+
 export default function Inventory() {
+  const location = useLocation();
   const [products, setProducts] = useState<Product[]>([]);
   const [loading, setLoading] = useState(true);
   const [search, setSearch] = useState('');
@@ -49,6 +52,12 @@ export default function Inventory() {
     observations: '',
     imageUrl: ''
   });
+
+  useEffect(() => {
+    if (location.pathname === '/adicionar-produto') {
+      openModal();
+    }
+  }, [location.pathname]);
 
   const handleImageUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];

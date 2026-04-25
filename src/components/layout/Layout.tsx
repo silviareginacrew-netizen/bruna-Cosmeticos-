@@ -6,12 +6,12 @@ import Logo from '../ui/Logo';
 import { motion } from 'motion/react';
 
 const NavItems = [
-  { path: '/', icon: LayoutDashboard, label: 'Dashboard' },
-  { path: '/inventory', icon: Package, label: 'Estoque' },
-  { path: '/sales', icon: ShoppingCart, label: 'Vendas' },
-  { path: '/clients', icon: Users, label: 'Clientes' },
-  { path: '/consortium', icon: CreditCard, label: 'Consórcio' },
-  { path: '/cashier', icon: Wallet, label: 'Caixa' },
+  { path: '/home', icon: LayoutDashboard, label: 'Dashboard' },
+  { path: '/estoque', icon: Package, label: 'Estoque' },
+  { path: '/vendas', icon: ShoppingCart, label: 'Vendas' },
+  { path: '/clientes', icon: Users, label: 'Clientes' },
+  { path: '/consorcio', icon: CreditCard, label: 'Consórcio' },
+  { path: '/caixa', icon: Wallet, label: 'Caixa' },
 ];
 
 export default function Layout() {

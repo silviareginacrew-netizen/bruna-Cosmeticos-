@@ -48,11 +48,13 @@ export default function App() {
         {/* Private Routes */}
         <Route element={user ? <Layout /> : <Navigate to="/login" />}>
           <Route path="/" element={<Dashboard />} />
-          <Route path="/inventory" element={<Inventory />} />
-          <Route path="/clients" element={<Clients />} />
-          <Route path="/sales" element={<Sales />} />
-          <Route path="/consortium" element={<Consortium />} />
-          <Route path="/cashier" element={<Cashier />} />
+          <Route path="/home" element={<Dashboard />} />
+          <Route path="/estoque" element={<Inventory />} />
+          <Route path="/adicionar-produto" element={<Inventory />} />
+          <Route path="/clientes" element={<Clients />} />
+          <Route path="/vendas" element={<Sales />} />
+          <Route path="/consorcio" element={<Consortium />} />
+          <Route path="/caixa" element={<Cashier />} />
         </Route>
 
         <Route path="*" element={<Navigate to="/" />} />

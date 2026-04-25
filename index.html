@@ -2,17 +2,43 @@
 <html lang="en">
   <head>
     <meta charset="UTF-8" />
-    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>Bruna Cosméticos | Premium Management</title>
-    <link rel="manifest" href="/manifest.json" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover" />
+    <title>Bruna Cosméticos | Elite Experience</title>
+    <link rel="manifest" href="/manifest.json?v=2" />
     <meta name="theme-color" content="#000000" />
+    <meta name="mobile-web-app-capable" content="yes" />
     <meta name="apple-mobile-web-app-capable" content="yes" />
     <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
-    <meta name="apple-mobile-web-app-title" content="Bruna Cosméticos" />
+    <meta name="apple-mobile-web-app-title" content="BC Elite" />
+    <link rel="apple-touch-icon" href="https://ui-avatars.com/api/?name=BC&background=000&color=ec4899&size=180&bold=true&v=2">
+    
     <script>
       if ('serviceWorker' in navigator) {
         window.addEventListener('load', () => {
-          navigator.serviceWorker.register('/sw.js');
+          navigator.serviceWorker.register('/sw.js?v=2').then(reg => {
+            console.log('Premium SW Active');
+            
+            setInterval(() => {
+              reg.update();
+            }, 1000 * 60 * 15); // Check every 15 mins
+            
+            reg.onupdatefound = () => {
+              const installingWorker = reg.installing;
+              if (installingWorker == null) return;
+              installingWorker.onstatechange = () => {
+                if (installingWorker.state === 'installed' && navigator.serviceWorker.controller) {
+                  window.location.reload();
+                }
+              };
+            };
+          }).catch(err => console.error('PWA Error:', err));
+        });
+
+        let refreshing = false;
+        navigator.serviceWorker.addEventListener('controllerchange', () => {
+          if (refreshing) return;
+          window.location.reload();
+          refreshing = true;
         });
       }
     </script>
