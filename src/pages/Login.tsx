@@ -2,19 +2,25 @@ import { useState, FormEvent } from 'react';
 import { 
   signInWithEmailAndPassword, 
   createUserWithEmailAndPassword, 
-  sendPasswordResetEmail 
+  sendPasswordResetEmail,
+  setPersistence,
+  browserLocalPersistence,
+  browserSessionPersistence
 } from 'firebase/auth';
 import { auth, db } from '../lib/firebase';
 import { doc, setDoc, serverTimestamp } from 'firebase/firestore';
 import Logo from '../components/ui/Logo';
-import { Mail, Lock, Loader2, ArrowRight } from 'lucide-react';
+import { Mail, Lock, Loader2, ArrowRight, Eye, EyeOff, Check } from 'lucide-react';
 import { motion, AnimatePresence } from 'motion/react';
+import { cn } from '../lib/utils';
 
 export default function Login() {
   const [isLogin, setIsLogin] = useState(true);
   const [isForgot, setIsForgot] = useState(false);
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
+  const [showPassword, setShowPassword] = useState(false);
+  const [stayConnected, setStayConnected] = useState(true);
   const [name, setName] = useState('');
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
@@ -27,6 +33,12 @@ export default function Login() {
     setSuccess('');
 
     try {
+      if (stayConnected) {
+        await setPersistence(auth, browserLocalPersistence);
+      } else {
+        await setPersistence(auth, browserSessionPersistence);
+      }
+
       if (isForgot) {
         await sendPasswordResetEmail(auth, email);
         setSuccess('E-mail de recuperação enviado!');
@@ -113,19 +125,44 @@ export default function Login() {
             </div>
 
             {!isForgot && (
-              <div>
-                <label className="text-[10px] uppercase tracking-[0.2em] text-white/30 ml-1 mb-2 block font-bold">Senha</label>
-                <div className="relative">
-                  <input
-                    type="password"
-                    className="input-premium pl-12"
-                    placeholder="••••••••"
-                    value={password}
-                    onChange={(e) => setPassword(e.target.value)}
-                    required
-                  />
-                  <Lock className="absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4 text-premium-pink/40" />
+              <div className="space-y-4">
+                <div>
+                  <label className="text-[10px] uppercase tracking-[0.2em] text-white/30 ml-1 mb-2 block font-bold">Senha</label>
+                  <div className="relative">
+                    <input
+                      type={showPassword ? "text" : "password"}
+                      className="input-premium pl-12 pr-12"
+                      placeholder="••••••••"
+                      value={password}
+                      onChange={(e) => setPassword(e.target.value)}
+                      required
+                    />
+                    <Lock className="absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4 text-premium-pink/40" />
+                    <button
+                      type="button"
+                      onClick={() => setShowPassword(!showPassword)}
+                      className="absolute right-4 top-1/2 -translate-y-1/2 text-white/20 hover:text-premium-pink transition-colors"
+                    >
+                      {showPassword ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
+                    </button>
+                  </div>
                 </div>
+
+                {isLogin && (
+                  <button 
+                    type="button"
+                    onClick={() => setStayConnected(!stayConnected)}
+                    className="flex items-center gap-3 group ml-1"
+                  >
+                    <div className={cn(
+                      "w-5 h-5 rounded-lg border flex items-center justify-center transition-all duration-500",
+                      stayConnected ? "bg-premium-pink border-premium-pink" : "border-white/10 bg-white/[0.02] group-hover:border-white/20"
+                    )}>
+                      {stayConnected && <Check className="w-3 h-3 text-black stroke-[4px]" />}
+                    </div>
+                    <span className="text-[11px] font-bold text-white/40 group-hover:text-white/60 tracking-wider transition-colors uppercase">Manter conectado</span>
+                  </button>
+                )}
               </div>
             )}
 
@@ -160,9 +197,9 @@ export default function Login() {
             {!isForgot && (
               <button 
                 onClick={() => setIsLogin(!isLogin)}
-                className="text-xs text-premium-pink/60 hover:text-premium-pink tracking-widest transition-all font-light"
+                className="text-xs text-premium-pink/60 hover:text-premium-pink tracking-widest transition-all font-bold uppercase"
               >
-                {isLogin ? 'AINDA NÃO SOU CONSULTORA? CRIAR CONTA' : 'JÁ POSSUO ACESSO? ENTRAR AGORA'}
+                {isLogin ? 'CRIAR CONTA' : 'ENtrar agora'}
               </button>
             )}
             <button 
