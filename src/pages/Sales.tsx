@@ -8,7 +8,8 @@ import {
   deleteDoc, 
   doc, 
   getDoc,
-  serverTimestamp 
+  serverTimestamp,
+  runTransaction 
 } from 'firebase/firestore';
 import { db, auth } from '../lib/firebase';
 import { Sale, Product, Client, Brand } from '../types';
@@ -91,67 +92,115 @@ export default function Sales() {
     setIsSubmitting(true);
 
     try {
+      if (!selectedProduct) throw new Error('Selecione um produto');
+      if (quantity <= 0) throw new Error('A quantidade deve ser maior que zero');
+      if (quantity > selectedProduct.quantity && !editingSale) {
+        throw new Error(`Estoque insuficiente. Disponível: ${selectedProduct.quantity}`);
+      }
+
       const totalValue = selectedProduct.sellPrice * quantity;
       const userId = auth.currentUser.uid;
 
-      // 1. Create/Update Sale Record
-      if (editingSale) {
-        await updateDoc(doc(db, 'users', userId, 'sales', editingSale.id), {
-          productId: selectedProduct.id,
-          productName: selectedProduct.name,
-          clientId: selectedClient?.id || null,
-          clientName: selectedClient?.name || 'Venda Avulsa',
-          quantity,
-          totalValue,
-          paymentMethod,
-          brand: selectedProduct.brand
-        });
-        alert('Venda atualizada com sucesso!');
-      } else {
-        await addDoc(collection(db, 'users', userId, 'sales'), {
-          productId: selectedProduct.id,
-          productName: selectedProduct.name,
-          clientId: selectedClient?.id || null,
-          clientName: selectedClient?.name || 'Venda Avulsa',
-          quantity,
-          totalValue,
-          paymentMethod,
-          brand: selectedProduct.brand,
-          date: new Date().toISOString()
-        });
+      await runTransaction(db, async (transaction) => {
+        const productRef = doc(db, 'users', userId, 'inventory', selectedProduct.id);
+        const productSnap = await transaction.get(productRef);
+        
+        if (!productSnap.exists()) throw new Error("Produto não encontrado!");
+        
+        const currentStock = productSnap.data().quantity;
 
-        // 2. Update Inventory (only on new sale for simplicity, or we should handle diff)
-        await updateDoc(doc(db, 'users', userId, 'inventory', selectedProduct.id), {
-          quantity: selectedProduct.quantity - quantity,
-          updatedAt: serverTimestamp()
-        });
+        // 1. Handle Sales Record
+        if (editingSale) {
+          // Calculate stock difference for editing
+          const stockDiff = editingSale.quantity - quantity;
+          const newStock = currentStock + stockDiff;
+          
+          if (newStock < 0) throw new Error("Estoque insuficiente após alteração!");
 
-        // 3. Update Transaction (Cashier)
-        await addDoc(collection(db, 'users', userId, 'transactions'), {
-          type: 'entry',
-          brand: selectedProduct.brand,
-          value: totalValue,
-          description: `Venda: ${selectedProduct.name} x${quantity} (${selectedClient?.name || 'Avulsa'})`,
-          date: new Date().toISOString()
-        });
-        alert('Venda registrada com sucesso!');
-      }
+          const saleRef = doc(db, 'users', userId, 'sales', editingSale.id);
+          transaction.update(saleRef, {
+            productId: selectedProduct.id,
+            productName: selectedProduct.name,
+            clientId: selectedClient?.id || null,
+            clientName: selectedClient?.name || 'Venda Avulsa',
+            quantity,
+            totalValue,
+            paymentMethod,
+            brand: selectedProduct.brand,
+            updatedAt: serverTimestamp()
+          });
+
+          transaction.set(productRef, { quantity: newStock, updatedAt: serverTimestamp() }, { merge: true });
+        } else {
+          if (currentStock < quantity) throw new Error("Estoque insuficiente!");
+
+          const salesColRef = collection(db, 'users', userId, 'sales');
+          const newSaleRef = doc(salesColRef);
+          
+          transaction.set(newSaleRef, {
+            productId: selectedProduct.id,
+            productName: selectedProduct.name,
+            clientId: selectedClient?.id || null,
+            clientName: selectedClient?.name || 'Venda Avulsa',
+            quantity,
+            totalValue,
+            paymentMethod,
+            brand: selectedProduct.brand,
+            date: new Date().toISOString(),
+            createdAt: serverTimestamp(),
+            updatedAt: serverTimestamp()
+          });
+
+          // 2. Update Inventory
+          transaction.set(productRef, { quantity: currentStock - quantity, updatedAt: serverTimestamp() }, { merge: true });
+
+          // 3. Update Transaction (Cashier)
+          const transColRef = collection(db, 'users', userId, 'transactions');
+          const newTransRef = doc(transColRef);
+          transaction.set(newTransRef, {
+            type: 'entry',
+            brand: selectedProduct.brand,
+            value: totalValue,
+            description: `Venda: ${selectedProduct.name} x${quantity} (${selectedClient?.name || 'Avulsa'})`,
+            date: new Date().toISOString(),
+            createdAt: serverTimestamp()
+          });
+        }
+      });
 
       setIsModalOpen(false);
       resetForm();
-    } catch (err) {
+    } catch (err: any) {
       console.error(err);
+      alert(err.message || 'Erro ao registrar venda.');
     } finally {
       setIsSubmitting(false);
     }
   };
 
-  const handleDelete = async (id: string) => {
-    if (!auth.currentUser || !confirm('Deseja excluir este registro de venda?')) return;
+  const handleDelete = async (sale: Sale) => {
+    if (!auth.currentUser || !confirm('Deseja excluir este registro de venda? O estoque será devolvido.')) return;
     try {
-      await deleteDoc(doc(db, 'users', auth.currentUser.uid, 'sales', id));
-      alert('Venda excluída com sucesso!');
-    } catch (err) {
+      const userId = auth.currentUser.uid;
+      
+      await runTransaction(db, async (transaction) => {
+        const saleRef = doc(db, 'users', userId, 'sales', sale.id);
+        const productRef = doc(db, 'users', userId, 'inventory', sale.productId);
+        
+        const productSnap = await transaction.get(productRef);
+        
+        if (productSnap.exists()) {
+          const currentStock = productSnap.data().quantity;
+          transaction.update(productRef, { 
+            quantity: currentStock + sale.quantity,
+            updatedAt: serverTimestamp()
+          });
+        }
+        
+        transaction.delete(saleRef);
+      });
+
+    } catch (err: any) {
       console.error(err);
       alert('Erro ao excluir venda.');
     }
@@ -244,7 +293,7 @@ export default function Sales() {
                       <Download className="w-4 sm:w-5 h-4 sm:h-5" />
                     </button>
                     <button 
-                      onClick={() => handleDelete(sale.id)}
+                      onClick={() => handleDelete(sale)}
                       className="w-10 sm:w-12 h-10 sm:h-12 flex items-center justify-center bg-red-500/5 text-red-500 border border-red-500/10 rounded-xl hover:bg-red-500/20 transition-all"
                     >
                       <Trash2 className="w-4 sm:w-5 h-4 sm:h-5" />

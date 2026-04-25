@@ -77,12 +77,15 @@ export default function Clients() {
     setIsSubmitting(true);
 
     try {
+      if (!formData.name.trim()) throw new Error('Nome é obrigatório');
+      if (!formData.phone.trim()) throw new Error('Telefone é obrigatório');
+
       if (editingClient) {
         await updateDoc(doc(db, 'users', auth.currentUser.uid, 'clients', editingClient.id), {
           ...formData,
           updatedAt: serverTimestamp()
         });
-        alert('Cliente atualizado com sucesso!');
+        // Success feedback already provided by UI changes below
       } else {
         await addDoc(collection(db, 'users', auth.currentUser.uid, 'clients'), {
           ...formData,
@@ -90,12 +93,11 @@ export default function Clients() {
           createdAt: serverTimestamp(),
           updatedAt: serverTimestamp()
         });
-        alert('Cliente cadastrado com sucesso!');
       }
       closeModal();
-    } catch (err) {
+    } catch (err: any) {
       console.error(err);
-      alert('Erro ao salvar cliente.');
+      alert(err.message || 'Erro ao salvar cliente.');
     } finally {
       setIsSubmitting(false);
     }

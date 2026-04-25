@@ -112,24 +112,34 @@ export default function Inventory() {
     setIsSubmitting(true);
 
     try {
+      if (!formData.name.trim()) throw new Error('Nome do produto é obrigatório');
+      if (formData.sellPrice <= 0) throw new Error('O preço de venda deve ser maior que zero');
+      if (formData.quantity < 0) throw new Error('A quantidade não pode ser negativa');
+
       if (editingProduct) {
         await updateDoc(doc(db, 'users', auth.currentUser.uid, 'inventory', editingProduct.id), {
           ...formData,
+          buyPrice: Number(formData.buyPrice),
+          sellPrice: Number(formData.sellPrice),
+          quantity: Number(formData.quantity),
+          minQuantity: Number(formData.minQuantity),
           updatedAt: serverTimestamp()
         });
-        alert('Produto atualizado com sucesso!');
       } else {
         await addDoc(collection(db, 'users', auth.currentUser.uid, 'inventory'), {
           ...formData,
+          buyPrice: Number(formData.buyPrice),
+          sellPrice: Number(formData.sellPrice),
+          quantity: Number(formData.quantity),
+          minQuantity: Number(formData.minQuantity),
           createdAt: serverTimestamp(),
           updatedAt: serverTimestamp()
         });
-        alert('Produto cadastrado com sucesso!');
       }
       closeModal();
-    } catch (err) {
+    } catch (err: any) {
       console.error(err);
-      alert('Erro ao salvar produto. Tente novamente.');
+      alert(err.message || 'Erro ao salvar produto. Tente novamente.');
     } finally {
       setIsSubmitting(false);
     }
