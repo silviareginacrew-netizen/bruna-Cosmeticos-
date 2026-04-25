@@ -4,6 +4,8 @@ import {
   query, 
   onSnapshot, 
   addDoc, 
+  deleteDoc,
+  doc,
   orderBy,
   limit 
 } from 'firebase/firestore';
@@ -18,7 +20,8 @@ import {
   Loader2,
   DollarSign,
   TrendingUp,
-  PieChart
+  PieChart,
+  Trash2
 } from 'lucide-react';
 import { motion } from 'motion/react';
 import { cn } from '../lib/utils';
@@ -60,6 +63,15 @@ export default function Cashier() {
 
   const formatCurrency = (val: number) => 
     new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(val);
+
+  const handleDelete = async (id: string) => {
+    if (!auth.currentUser || !confirm('Deseja excluir este registro de movimentação?')) return;
+    try {
+      await deleteDoc(doc(db, 'users', auth.currentUser.uid, 'transactions', id));
+    } catch (err) {
+      console.error(err);
+    }
+  };
 
   const filteredTransactions = transactions.filter(t => 
     filterBrand === 'Todas' || t.brand === filterBrand
@@ -191,13 +203,21 @@ export default function Cashier() {
                       </div>
                     </div>
                   </div>
-                  <div className="text-right">
-                    <p className={cn(
-                      "font-display text-xl",
-                      t.type === 'entry' ? "text-green-400" : "text-red-400"
-                    )}>
-                      {t.type === 'entry' ? '+' : '-'} {formatCurrency(t.value)}
-                    </p>
+                  <div className="flex items-center gap-4">
+                    <div className="text-right">
+                      <p className={cn(
+                        "font-display text-xl",
+                        t.type === 'entry' ? "text-green-400" : "text-red-400"
+                      )}>
+                        {t.type === 'entry' ? '+' : '-'} {formatCurrency(t.value)}
+                      </p>
+                    </div>
+                    <button 
+                      onClick={() => handleDelete(t.id)}
+                      className="w-10 h-10 flex items-center justify-center bg-red-400/5 text-red-400 border border-red-400/10 rounded-xl opacity-0 group-hover:opacity-100 transition-all hover:bg-red-400/20"
+                    >
+                      <Trash2 className="w-4 h-4" />
+                    </button>
                   </div>
                 </div>
               ))

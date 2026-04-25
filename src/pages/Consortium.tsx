@@ -27,7 +27,8 @@ import {
   FileText,
   Printer,
   Check,
-  Trash2
+  Trash2,
+  Edit2
 } from 'lucide-react';
 import { motion, AnimatePresence } from 'motion/react';
 import { cn } from '../lib/utils';
@@ -39,6 +40,7 @@ export default function ConsortiumPage() {
   const [installmentsMap, setInstallmentsMap] = useState<Record<string, Installment[]>>({});
   const [loading, setLoading] = useState(true);
   const [isModalOpen, setIsModalOpen] = useState(false);
+  const [editingConsortium, setEditingConsortium] = useState<Consortium | null>(null);
   const [expandedId, setExpandedId] = useState<string | null>(null);
 
   // Form state
@@ -88,25 +90,34 @@ export default function ConsortiumPage() {
         entryValue,
         installmentsCount,
         dueDay,
-        status: 'active',
-        createdAt: new Date().toISOString()
       };
 
-      const conRef = await addDoc(collection(db, 'users', userId, 'consortiums'), consortiumData);
-      
-      // Generate installments
-      const installmentValue = (totalValue - entryValue) / installmentsCount;
-      const today = new Date();
-      
-      for (let i = 1; i <= installmentsCount; i++) {
-        const dueDate = new Date(today.getFullYear(), today.getMonth() + i, dueDay);
-        await addDoc(collection(db, 'users', userId, 'consortiums', conRef.id, 'installments'), {
-          consortiumId: conRef.id,
-          number: i,
-          dueDate: dueDate.toISOString(),
-          value: installmentValue,
-          status: 'pending'
+      if (editingConsortium) {
+         await updateDoc(doc(db, 'users', userId, 'consortiums', editingConsortium.id), {
+           ...consortiumData,
+           updatedAt: serverTimestamp()
+         });
+      } else {
+        const conRef = await addDoc(collection(db, 'users', userId, 'consortiums'), {
+          ...consortiumData,
+          status: 'active',
+          createdAt: new Date().toISOString()
         });
+        
+        // Generate installments
+        const installmentValue = (totalValue - entryValue) / installmentsCount;
+        const today = new Date();
+        
+        for (let i = 1; i <= installmentsCount; i++) {
+          const dueDate = new Date(today.getFullYear(), today.getMonth() + i, dueDay);
+          await addDoc(collection(db, 'users', userId, 'consortiums', conRef.id, 'installments'), {
+            consortiumId: conRef.id,
+            number: i,
+            dueDate: dueDate.toISOString(),
+            value: installmentValue,
+            status: 'pending'
+          });
+        }
       }
 
       setIsModalOpen(false);
@@ -116,6 +127,16 @@ export default function ConsortiumPage() {
     } finally {
       setIsSubmitting(false);
     }
+  };
+
+  const openEditModal = (con: Consortium) => {
+    setEditingConsortium(con);
+    setSelectedClient(clients.find(c => c.id === con.clientId) || null);
+    setTotalValue(con.totalValue);
+    setEntryValue(con.entryValue || 0);
+    setInstallmentsCount(con.installmentsCount);
+    setDueDay(con.dueDay);
+    setIsModalOpen(true);
   };
 
   const markAsPaid = async (consortiumId: string, installmentId: string, value: number) => {
@@ -149,6 +170,7 @@ export default function ConsortiumPage() {
   };
 
   const resetForm = () => {
+    setEditingConsortium(null);
     setSelectedClient(null);
     setTotalValue(0);
     setEntryValue(0);
@@ -277,6 +299,12 @@ export default function ConsortiumPage() {
 
                   <div className="flex gap-2 pt-6">
                     <button 
+                      onClick={() => openEditModal(con)}
+                      className="w-12 h-12 flex items-center justify-center bg-white/5 text-white/40 border border-white/5 rounded-xl hover:bg-premium-pink hover:text-black transition-all"
+                    >
+                      <Edit2 className="w-5 h-5" />
+                    </button>
+                    <button 
                       onClick={() => generateConsortiumPDF(con, installments)}
                       className="flex-1 btn-outline py-3 text-[10px] uppercase tracking-widest px-0"
                     >
@@ -328,7 +356,9 @@ export default function ConsortiumPage() {
                 <X className="w-6 h-6" />
               </button>
 
-              <h2 className="text-2xl font-semibold mb-6 text-pink-gradient">Criar Novo Consórcio</h2>
+              <h2 className="text-2xl font-semibold mb-6 text-pink-gradient">
+                {editingConsortium ? 'Editar Consórcio' : 'Criar Novo Consórcio'}
+              </h2>
 
               <form onSubmit={handleCreate} className="space-y-4">
                 <div>

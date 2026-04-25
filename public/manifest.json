@@ -1,20 +1,20 @@
 {
   "name": "Bruna Cosméticos",
-  "short_name": "BC Consultoria",
+  "short_name": "BC",
   "start_url": "/",
   "display": "standalone",
   "background_color": "#000000",
-  "theme_color": "#FFB6C1",
-  "description": "Consultoria Premium de Beleza: O Boticário e Mary Kay",
+  "theme_color": "#000000",
+  "description": "Curadoria de luxo BC - Cosméticos Premium",
   "icons": [
     {
-      "src": "https://raw.githubusercontent.com/shadcn/ui/main/apps/www/public/apple-touch-icon.png",
+      "src": "https://images.unsplash.com/photo-1620916566398-39f1143ab7be?w=192&h=192&fit=crop",
       "sizes": "192x192",
       "type": "image/png",
       "purpose": "any maskable"
     },
     {
-      "src": "https://raw.githubusercontent.com/shadcn/ui/main/apps/www/public/apple-touch-icon.png",
+      "src": "https://images.unsplash.com/photo-1620916566398-39f1143ab7be?w=512&h=512&fit=crop",
       "sizes": "512x512",
       "type": "image/png",
       "purpose": "any maskable"

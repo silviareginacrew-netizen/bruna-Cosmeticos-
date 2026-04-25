@@ -7,7 +7,7 @@ import {
   orderBy,
   limit
 } from 'firebase/firestore';
-import { db } from '../lib/firebase';
+import { db, auth } from '../lib/firebase';
 import { Product } from '../types';
 import Logo from '../components/ui/Logo';
 import { 
@@ -19,9 +19,13 @@ import {
   Flame,
   Clock,
   Sparkles,
-  ArrowRight
+  ArrowRight,
+  Trash2,
+  Edit2,
+  Plus
 } from 'lucide-react';
 import { motion, AnimatePresence } from 'motion/react';
+import { useNavigate } from 'react-router-dom';
 import { cn } from '../lib/utils';
 
 type TabType = 'Promoções' | 'O Boticário' | 'Mary Kay' | 'Novidades' | 'Mais Vendidos';
@@ -29,11 +33,13 @@ type TabType = 'Promoções' | 'O Boticário' | 'Mary Kay' | 'Novidades' | 'Mais
 export default function Catalog() {
   const { businessSlug } = useParams<{ businessSlug: string }>();
   const location = useLocation();
+  const navigate = useNavigate();
   const [products, setProducts] = useState<Product[]>([]);
   const [loading, setLoading] = useState(true);
   const [search, setSearch] = useState('');
   const [activeTab, setActiveTab] = useState<TabType>('O Boticário');
   const [businessName] = useState('Bruna Cosméticos');
+  const isAdmin = auth.currentUser?.uid === businessSlug;
 
   useEffect(() => {
     const params = new URLSearchParams(location.search);
@@ -200,6 +206,22 @@ export default function Catalog() {
                     <div className="bg-black/60 backdrop-blur-xl px-4 py-2 rounded-full text-[9px] font-black uppercase tracking-widest border border-white/10 text-white/40">
                       {p.brand}
                     </div>
+                    {isAdmin && (
+                      <div className="flex gap-2">
+                        <button 
+                          onClick={() => navigate('/estoque')}
+                          className="w-10 h-10 bg-premium-pink/80 backdrop-blur-md rounded-xl flex items-center justify-center text-black shadow-lg"
+                        >
+                          <Edit2 className="w-4 h-4" />
+                        </button>
+                        <button 
+                          onClick={() => navigate('/estoque')}
+                          className="w-10 h-10 bg-red-500/80 backdrop-blur-md rounded-xl flex items-center justify-center text-white shadow-lg"
+                        >
+                          <Trash2 className="w-4 h-4" />
+                        </button>
+                      </div>
+                    )}
                   </div>
                   
                   {/* Floating Action Button - Mobile focus */}
@@ -252,6 +274,15 @@ export default function Catalog() {
           </div>
         )}
       </div>
+
+      {isAdmin && (
+        <button 
+          onClick={() => navigate('/estoque')}
+          className="fixed bottom-10 right-10 w-20 h-20 bg-premium-pink rounded-full flex items-center justify-center text-black shadow-[0_20px_50px_rgba(212,175,55,0.3)] z-[60] hover:scale-110 active:scale-95 transition-all group"
+        >
+          <Plus className="w-10 h-10 transition-transform group-hover:rotate-90" />
+        </button>
+      )}
 
       {/* Signature Footer */}
       <footer className="mt-40 border-t border-white/5 pt-20 pb-40 px-8 text-center space-y-12">

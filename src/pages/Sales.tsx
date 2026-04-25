@@ -26,7 +26,8 @@ import {
   FileText,
   Package,
   User,
-  Download
+  Download,
+  Edit2
 } from 'lucide-react';
 import { motion, AnimatePresence } from 'motion/react';
 import { cn } from '../lib/utils';
@@ -38,6 +39,7 @@ export default function Sales() {
   const [clients, setClients] = useState<Client[]>([]);
   const [loading, setLoading] = useState(true);
   const [isModalOpen, setIsModalOpen] = useState(false);
+  const [editingSale, setEditingSale] = useState<Sale | null>(null);
 
   // Sale form state
   const [selectedProduct, setSelectedProduct] = useState<Product | null>(null);
@@ -79,33 +81,46 @@ export default function Sales() {
       const totalValue = selectedProduct.sellPrice * quantity;
       const userId = auth.currentUser.uid;
 
-      // 1. Create Sale Record
-      await addDoc(collection(db, 'users', userId, 'sales'), {
-        productId: selectedProduct.id,
-        productName: selectedProduct.name,
-        clientId: selectedClient?.id || null,
-        clientName: selectedClient?.name || 'Venda Avulsa',
-        quantity,
-        totalValue,
-        paymentMethod,
-        brand: selectedProduct.brand,
-        date: new Date().toISOString()
-      });
+      // 1. Create/Update Sale Record
+      if (editingSale) {
+        await updateDoc(doc(db, 'users', userId, 'sales', editingSale.id), {
+          productId: selectedProduct.id,
+          productName: selectedProduct.name,
+          clientId: selectedClient?.id || null,
+          clientName: selectedClient?.name || 'Venda Avulsa',
+          quantity,
+          totalValue,
+          paymentMethod,
+          brand: selectedProduct.brand
+        });
+      } else {
+        await addDoc(collection(db, 'users', userId, 'sales'), {
+          productId: selectedProduct.id,
+          productName: selectedProduct.name,
+          clientId: selectedClient?.id || null,
+          clientName: selectedClient?.name || 'Venda Avulsa',
+          quantity,
+          totalValue,
+          paymentMethod,
+          brand: selectedProduct.brand,
+          date: new Date().toISOString()
+        });
 
-      // 2. Update Inventory
-      await updateDoc(doc(db, 'users', userId, 'inventory', selectedProduct.id), {
-        quantity: selectedProduct.quantity - quantity,
-        updatedAt: serverTimestamp()
-      });
+        // 2. Update Inventory (only on new sale for simplicity, or we should handle diff)
+        await updateDoc(doc(db, 'users', userId, 'inventory', selectedProduct.id), {
+          quantity: selectedProduct.quantity - quantity,
+          updatedAt: serverTimestamp()
+        });
 
-      // 3. Update Transaction (Cashier)
-      await addDoc(collection(db, 'users', userId, 'transactions'), {
-        type: 'entry',
-        brand: selectedProduct.brand,
-        value: totalValue,
-        description: `Venda: ${selectedProduct.name} x${quantity} (${selectedClient?.name || 'Avulsa'})`,
-        date: new Date().toISOString()
-      });
+        // 3. Update Transaction (Cashier)
+        await addDoc(collection(db, 'users', userId, 'transactions'), {
+          type: 'entry',
+          brand: selectedProduct.brand,
+          value: totalValue,
+          description: `Venda: ${selectedProduct.name} x${quantity} (${selectedClient?.name || 'Avulsa'})`,
+          date: new Date().toISOString()
+        });
+      }
 
       setIsModalOpen(false);
       resetForm();
@@ -125,7 +140,17 @@ export default function Sales() {
     }
   };
 
+  const openEditModal = (sale: Sale) => {
+    setEditingSale(sale);
+    setSelectedProduct(products.find(p => p.id === sale.productId) || null);
+    setSelectedClient(clients.find(c => c.id === sale.clientId) || null);
+    setQuantity(sale.quantity);
+    setPaymentMethod(sale.paymentMethod);
+    setIsModalOpen(true);
+  };
+
   const resetForm = () => {
+    setEditingSale(null);
     setSelectedProduct(null);
     setSelectedClient(null);
     setQuantity(1);
@@ -186,6 +211,12 @@ export default function Sales() {
 
                   <div className="flex gap-2">
                     <button 
+                      onClick={() => openEditModal(sale)}
+                      className="w-10 sm:w-12 h-10 sm:h-12 flex items-center justify-center bg-white/5 text-white/40 border border-white/5 rounded-xl hover:bg-premium-pink hover:text-black transition-all"
+                    >
+                      <Edit2 className="w-4 sm:w-5 h-4 sm:h-5" />
+                    </button>
+                    <button 
                       onClick={() => generateReceipt(sale)}
                       className="w-10 sm:w-12 h-10 sm:h-12 flex items-center justify-center bg-white/5 text-white/40 border border-white/5 rounded-xl hover:bg-premium-pink hover:text-black transition-all"
                     >
@@ -231,7 +262,7 @@ export default function Sales() {
 
               <h2 className="text-2xl font-semibold mb-6 flex items-center gap-2 text-pink-gradient">
                 <ShoppingCart className="w-6 h-6" />
-                Registrar Venda
+                {editingSale ? 'Editar Venda' : 'Registrar Venda'}
               </h2>
 
               <form onSubmit={handleSale} className="space-y-6">

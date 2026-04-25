@@ -1,7 +1,22 @@
+const CACHE_NAME = 'bruna-cosmeticos-v1';
+const ASSETS = [
+  '/',
+  '/index.html',
+  '/manifest.json'
+];
+
 self.addEventListener('install', (event) => {
-  self.skipWaiting();
+  event.waitUntil(
+    caches.open(CACHE_NAME).then((cache) => {
+      return cache.addAll(ASSETS);
+    })
+  );
 });
 
 self.addEventListener('fetch', (event) => {
-  // Simple pass-through for now to satisfy PWA requirements
+  event.respondWith(
+    caches.match(event.request).then((response) => {
+      return response || fetch(event.request);
+    })
+  );
 });

@@ -1,4 +1,4 @@
-import { useState, useEffect, FormEvent } from 'react';
+import React, { useState, useEffect, FormEvent } from 'react';
 import { 
   collection, 
   query, 
@@ -44,8 +44,24 @@ export default function Inventory() {
     sellPrice: 0,
     quantity: 0,
     minQuantity: 5,
-    observations: ''
+    observations: '',
+    imageUrl: ''
   });
+
+  const handleImageUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (file) {
+      if (file.size > 800000) { // ~800KB limit for Firestore doc safety
+        alert('Imagem muito grande. Escolha uma imagem menor que 800KB.');
+        return;
+      }
+      const reader = new FileReader();
+      reader.onloadend = () => {
+        setFormData({ ...formData, imageUrl: reader.result as string });
+      };
+      reader.readAsDataURL(file);
+    }
+  };
 
   useEffect(() => {
     if (!auth.currentUser) return;
@@ -98,7 +114,8 @@ export default function Inventory() {
         sellPrice: product.sellPrice,
         quantity: product.quantity,
         minQuantity: product.minQuantity,
-        observations: product.observations || ''
+        observations: product.observations || '',
+        imageUrl: product.imageUrl || ''
       });
     } else {
       setEditingProduct(null);
@@ -111,7 +128,8 @@ export default function Inventory() {
         sellPrice: 0,
         quantity: 0,
         minQuantity: 5,
-        observations: ''
+        observations: '',
+        imageUrl: ''
       });
     }
     setIsModalOpen(true);
@@ -268,6 +286,33 @@ export default function Inventory() {
               </h2>
 
               <form onSubmit={handleSubmit} className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                <div className="md:col-span-2 flex flex-col items-center gap-4 py-4 bg-white/5 rounded-3xl border border-dashed border-white/10 group hover:border-premium-pink/40 transition-all cursor-pointer relative overflow-hidden">
+                  {formData.imageUrl ? (
+                    <div className="relative w-full aspect-video">
+                      <img src={formData.imageUrl} alt="Preview" className="w-full h-full object-cover rounded-2xl" />
+                      <button 
+                        type="button"
+                        onClick={() => setFormData({...formData, imageUrl: ''})}
+                        className="absolute top-2 right-2 p-2 bg-black/60 backdrop-blur-md rounded-full text-white/60 hover:text-red-400"
+                      >
+                        <Trash2 className="w-4 h-4" />
+                      </button>
+                    </div>
+                  ) : (
+                    <div className="py-8 flex flex-col items-center gap-2">
+                       <Camera className="w-10 h-10 text-white/20 group-hover:text-premium-pink transition-colors" />
+                       <p className="text-[10px] uppercase font-black tracking-widest text-white/20">Tirar foto ou Galeria</p>
+                    </div>
+                  )}
+                  <input 
+                    type="file" 
+                    accept="image/*" 
+                    capture="environment"
+                    className="absolute inset-0 opacity-0 cursor-pointer"
+                    onChange={handleImageUpload}
+                  />
+                </div>
+
                 <div className="md:col-span-2">
                   <label className="text-xs text-white/60 mb-2 block">Nome do Produto</label>
                   <input 
