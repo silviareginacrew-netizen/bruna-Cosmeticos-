@@ -9,7 +9,8 @@ import {
   doc, 
   serverTimestamp,
   collectionGroup,
-  where
+  where,
+  getDocs
 } from 'firebase/firestore';
 import { db, auth } from '../lib/firebase';
 import { Consortium, Installment, Client } from '../types';
@@ -58,18 +59,18 @@ export default function ConsortiumPage() {
     }
     const userId = auth.currentUser.uid;
 
-    const unsubCons = onSnapshot(query(collection(db, 'users', userId, 'consortiums')), (snap) => {
+    const unsubCons = onSnapshot(query(collection(db, 'users', userId, 'consortiums')), async (snap) => {
       const data = snap.docs.map(doc => ({ id: doc.id, ...doc.data() } as Consortium));
       setConsortiums(data);
       setLoading(false);
       
-      // Load installments for each
-      data.forEach(con => {
-        onSnapshot(query(collection(db, 'users', userId, 'consortiums', con.id, 'installments')), (insSnap) => {
-          const insData = insSnap.docs.map(d => ({ id: d.id, ...d.data() } as Installment));
-          setInstallmentsMap(prev => ({ ...prev, [con.id]: insData.sort((a,b) => a.number - b.number) }));
-        });
-      });
+      // Clear old installment listeners if we were using them
+      // Alternatively, just do a one-time fetch or a more controlled sync
+      for (const con of data) {
+         const insSnap = await getDocs(query(collection(db, 'users', userId, 'consortiums', con.id, 'installments')));
+         const insData = insSnap.docs.map(d => ({ id: d.id, ...d.data() } as Installment));
+         setInstallmentsMap(prev => ({ ...prev, [con.id]: insData.sort((a,b) => a.number - b.number) }));
+      }
     }, (err) => {
       console.error(err);
       setLoading(false);

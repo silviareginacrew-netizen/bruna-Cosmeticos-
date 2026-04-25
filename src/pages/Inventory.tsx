@@ -11,6 +11,7 @@ import {
 } from 'firebase/firestore';
 import { db, auth } from '../lib/firebase';
 import { Product, Brand } from '../types';
+import { compressImage } from '../lib/imageUtils';
 import { 
   Package, 
   Search, 
@@ -49,16 +50,18 @@ export default function Inventory() {
     imageUrl: ''
   });
 
-  const handleImageUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
+  const handleImageUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (file) {
-      if (file.size > 800000) { // ~800KB limit for Firestore doc safety
-        alert('Imagem muito grande. Escolha uma imagem menor que 800KB.');
-        return;
-      }
       const reader = new FileReader();
-      reader.onloadend = () => {
-        setFormData({ ...formData, imageUrl: reader.result as string });
+      reader.onloadend = async () => {
+        try {
+          const compressed = await compressImage(reader.result as string, 1000, 1000, 0.6);
+          setFormData({ ...formData, imageUrl: compressed });
+        } catch (err) {
+          console.error('Erro na compressão:', err);
+          setFormData({ ...formData, imageUrl: reader.result as string });
+        }
       };
       reader.readAsDataURL(file);
     }
@@ -70,16 +73,28 @@ export default function Inventory() {
       return;
     }
     const userId = auth.currentUser.uid;
+    
+    const timeoutId = setTimeout(() => {
+      if (loading) {
+        setLoading(false);
+      }
+    }, 5000);
+
     const q = query(collection(db, 'users', userId, 'inventory'));
     const unsub = onSnapshot(q, (snap) => {
       const data = snap.docs.map(doc => ({ id: doc.id, ...doc.data() } as Product));
       setProducts(data);
       setLoading(false);
+      clearTimeout(timeoutId);
     }, (err) => {
       console.error(err);
       setLoading(false);
+      clearTimeout(timeoutId);
     });
-    return () => unsub();
+    return () => {
+      unsub();
+      clearTimeout(timeoutId);
+    };
   }, [auth.currentUser]);
 
   const handleSubmit = async (e: FormEvent) => {
@@ -331,7 +346,6 @@ export default function Inventory() {
                   <input 
                     type="file" 
                     accept="image/*" 
-                    capture="environment"
                     className="absolute inset-0 opacity-0 cursor-pointer"
                     onChange={handleImageUpload}
                   />

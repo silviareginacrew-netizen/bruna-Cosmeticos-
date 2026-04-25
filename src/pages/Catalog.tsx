@@ -1,6 +1,8 @@
 import { useState, useEffect } from 'react';
 import { useParams, useLocation } from 'react-router-dom';
 import { 
+  getDoc,
+  doc,
   collection, 
   query, 
   onSnapshot,
@@ -22,7 +24,8 @@ import {
   ArrowRight,
   Trash2,
   Edit2,
-  Plus
+  Plus,
+  AlertCircle
 } from 'lucide-react';
 import { motion, AnimatePresence } from 'motion/react';
 import { useNavigate } from 'react-router-dom';
@@ -36,9 +39,10 @@ export default function Catalog() {
   const navigate = useNavigate();
   const [products, setProducts] = useState<Product[]>([]);
   const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
   const [search, setSearch] = useState('');
   const [activeTab, setActiveTab] = useState<TabType>('O Boticário');
-  const [businessName] = useState('Bruna Cosméticos');
+  const [businessName, setBusinessName] = useState('Bruna Cosméticos');
   const isAdmin = auth.currentUser?.uid === businessSlug;
 
   useEffect(() => {
@@ -54,6 +58,27 @@ export default function Catalog() {
     let userId = businessSlug;
     if (!userId) return;
 
+    setLoading(true);
+    setError(null);
+
+    // Fetch business profile
+    getDoc(doc(db, 'users', userId)).then(snap => {
+      if (snap.exists()) {
+        const data = snap.data();
+        if (data.businessName) setBusinessName(data.businessName);
+      }
+    });
+
+    // Safety timeout to prevent infinite loading
+    const timeoutId = setTimeout(() => {
+      if (loading) {
+        setLoading(false);
+        if (products.length === 0) {
+           setError('O tempo de carregamento expirou. Verifique sua conexão.');
+        }
+      }
+    }, 8000);
+
     const inventoryRef = collection(db, 'users', userId, 'inventory');
     let q = query(inventoryRef);
 
@@ -65,9 +90,18 @@ export default function Catalog() {
       const pData = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() } as Product));
       setProducts(pData);
       setLoading(false);
+      clearTimeout(timeoutId);
+    }, (err) => {
+      console.error(err);
+      setError('Erro ao carregar catálogo.');
+      setLoading(false);
+      clearTimeout(timeoutId);
     });
 
-    return () => unsubscribe();
+    return () => {
+      unsubscribe();
+      clearTimeout(timeoutId);
+    };
   }, [businessSlug, activeTab]);
 
   const handleWhatsApp = (product: Product) => {
@@ -81,9 +115,12 @@ export default function Catalog() {
   const filteredProducts = products.filter(p => {
     const matchesSearch = p.name.toLowerCase().includes(search.toLowerCase());
     
+    // Normalized brand check to handle case variations
+    const productBrand = p.brand?.toLowerCase().trim();
+    
     // Tab logic
-    if (activeTab === 'O Boticário') return matchesSearch && p.brand === 'O Boticário';
-    if (activeTab === 'Mary Kay') return matchesSearch && p.brand === 'Mary Kay';
+    if (activeTab === 'O Boticário') return matchesSearch && productBrand === 'o boticário';
+    if (activeTab === 'Mary Kay') return matchesSearch && productBrand === 'mary kay';
     if (activeTab === 'Promoções') return matchesSearch && (p.observations?.toLowerCase().includes('promoção') || p.sellPrice < (p.buyPrice * 1.3));
     if (activeTab === 'Novidades') return matchesSearch;
     if (activeTab === 'Mais Vendidos') return matchesSearch && p.quantity < 3; // Heuristic
@@ -135,7 +172,7 @@ export default function Catalog() {
         >
           <Logo size="lg" className="mx-auto" />
           <div className="space-y-2">
-            <h1 className="text-5xl sm:text-6xl font-display font-bold text-pink-gradient italic tracking-tighter">Bruna Cosméticos</h1>
+            <h1 className="text-5xl sm:text-6xl font-display font-bold text-pink-gradient italic tracking-tighter">{businessName}</h1>
             <p className="text-[10px] uppercase font-black tracking-[0.5em] text-white/30">Onde a beleza encontra o luxo</p>
           </div>
         </motion.div>
@@ -175,103 +212,115 @@ export default function Catalog() {
           />
         </div>
 
-        {/* Product Grid */}
-        <AnimatePresence mode="wait">
-          <motion.div 
-            key={activeTab}
-            initial={{ opacity: 0, y: 30 }}
-            animate={{ opacity: 1, y: 0 }}
-            exit={{ opacity: 0, y: -30 }}
-            className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-10"
-          >
-            {filteredProducts.map((p) => (
-              <motion.div 
-                key={p.id}
-                initial={{ opacity: 0 }}
-                whileInView={{ opacity: 1 }}
-                viewport={{ once: true }}
-                className="group flex flex-col"
+        {error ? (
+          <div className="py-40 text-center space-y-6">
+            <AlertCircle className="w-20 h-20 mx-auto text-red-500/40" />
+            <div className="space-y-2">
+              <p className="text-2xl font-display uppercase tracking-widest text-red-400">{error}</p>
+              <button 
+                onClick={() => window.location.reload()}
+                className="px-8 py-3 bg-white/5 border border-white/10 rounded-2xl text-[10px] font-black uppercase tracking-widest hover:bg-premium-pink hover:text-black transition-all"
               >
-                <div className="aspect-[3/4] bg-dark-surface rounded-[2.5rem] overflow-hidden mb-6 relative border border-white/5 shadow-[0_32px_64px_-16px_rgba(0,0,0,0.5)]">
-                  {p.imageUrl ? (
-                    <img src={p.imageUrl} alt={p.name} className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-1000" />
-                  ) : (
-                    <div className="w-full h-full flex items-center justify-center opacity-5">
-                      <Package className="w-24 h-24" />
-                    </div>
-                  )}
-
-                  {/* Top Badge */}
-                  <div className="absolute top-6 left-6 flex flex-col gap-2 z-10">
-                    <div className="bg-black/60 backdrop-blur-xl px-4 py-2 rounded-full text-[9px] font-black uppercase tracking-widest border border-white/10 text-white/40">
-                      {p.brand}
-                    </div>
-                    {isAdmin && (
-                      <div className="flex gap-2">
-                        <button 
-                          onClick={() => navigate('/estoque')}
-                          className="w-10 h-10 bg-premium-pink/80 backdrop-blur-md rounded-xl flex items-center justify-center text-black shadow-lg"
-                        >
-                          <Edit2 className="w-4 h-4" />
-                        </button>
-                        <button 
-                          onClick={() => navigate('/estoque')}
-                          className="w-10 h-10 bg-red-500/80 backdrop-blur-md rounded-xl flex items-center justify-center text-white shadow-lg"
-                        >
-                          <Trash2 className="w-4 h-4" />
-                        </button>
-                      </div>
-                    )}
-                  </div>
-                  
-                  {/* Floating Action Button - Mobile focus */}
-                  <div className="absolute bottom-6 right-6">
-                    <button 
-                      onClick={() => handleWhatsApp(p)}
-                      className="w-14 h-14 bg-white/10 backdrop-blur-md border border-white/20 rounded-2xl flex items-center justify-center text-white hover:bg-premium-pink hover:text-black transition-all shadow-xl group/btn"
-                    >
-                      <MessageCircle className="w-7 h-7 group-hover/btn:scale-110 transition-transform" />
-                    </button>
-                  </div>
-                </div>
-
-                <div className="space-y-4 px-2">
-                  <div className="space-y-1">
-                    <h3 className="font-display text-2xl text-white group-hover:text-premium-pink transition-colors line-clamp-1 italic">{p.name}</h3>
-                    <p className="text-[10px] uppercase font-black tracking-widest text-white/10">{p.category || 'Luxury Collection'}</p>
-                  </div>
-
-                  <div className="flex items-end justify-between">
-                    <div className="space-y-1">
-                      <span className="text-[9px] uppercase font-black tracking-widest text-white/20">Investimento</span>
-                      <p className="text-3xl font-display text-white">R$ {p.sellPrice.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}</p>
-                    </div>
-                    {p.quantity < 3 && p.quantity > 0 && (
-                      <div className="flex items-center gap-1.5 text-orange-400/60 pb-1">
-                        <Flame className="w-3 h-3" />
-                        <span className="text-[8px] font-black uppercase tracking-widest">Últimas Unidades</span>
-                      </div>
-                    )}
-                  </div>
-
-                  <button 
-                    onClick={() => handleWhatsApp(p)}
-                    className="w-full h-14 bg-white/5 border border-white/5 rounded-2xl flex items-center justify-center gap-3 text-[10px] font-black uppercase tracking-[0.2em] hover:bg-premium-pink hover:text-black transition-all group/buy"
-                  >
-                    Garanta o seu agora
-                    <ArrowRight className="w-4 h-4 transition-transform group-hover/buy:translate-x-1" />
-                  </button>
-                </div>
-              </motion.div>
-            ))}
-          </motion.div>
-        </AnimatePresence>
-
-        {filteredProducts.length === 0 && (
+                Tentar Novamente
+              </button>
+            </div>
+          </div>
+        ) : filteredProducts.length === 0 && !loading ? (
           <div className="py-40 text-center opacity-20">
             <Package className="w-20 h-20 mx-auto mb-6" />
             <p className="text-3xl font-display uppercase tracking-widest italic">Acervo indispónivel no momento</p>
           </div>
+        ) : (
+          <AnimatePresence mode="wait">
+            <motion.div 
+              key={activeTab}
+              initial={{ opacity: 0, y: 30 }}
+              animate={{ opacity: 1, y: 0 }}
+              exit={{ opacity: 0, y: -30 }}
+              className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-10"
+            >
+              {filteredProducts.map((p) => (
+                <motion.div 
+                  key={p.id}
+                  initial={{ opacity: 0 }}
+                  whileInView={{ opacity: 1 }}
+                  viewport={{ once: true }}
+                  className="group flex flex-col"
+                >
+                  <div className="aspect-[3/4] bg-dark-surface rounded-[2.5rem] overflow-hidden mb-6 relative border border-white/5 shadow-[0_32px_64px_-16px_rgba(0,0,0,0.5)]">
+                    {p.imageUrl ? (
+                      <img src={p.imageUrl} alt={p.name} className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-1000" />
+                    ) : (
+                      <div className="w-full h-full flex items-center justify-center opacity-5">
+                        <Package className="w-24 h-24" />
+                      </div>
+                    )}
+
+                    {/* Top Badge */}
+                    <div className="absolute top-6 left-6 flex flex-col gap-2 z-10">
+                      <div className="bg-black/60 backdrop-blur-xl px-4 py-2 rounded-full text-[9px] font-black uppercase tracking-widest border border-white/10 text-white/40">
+                        {p.brand}
+                      </div>
+                      {isAdmin && (
+                        <div className="flex gap-2">
+                          <button 
+                            onClick={() => navigate('/estoque')}
+                            className="w-10 h-10 bg-premium-pink/80 backdrop-blur-md rounded-xl flex items-center justify-center text-black shadow-lg"
+                          >
+                            <Edit2 className="w-4 h-4" />
+                          </button>
+                          <button 
+                            onClick={() => navigate('/estoque')}
+                            className="w-10 h-10 bg-red-500/80 backdrop-blur-md rounded-xl flex items-center justify-center text-white shadow-lg"
+                          >
+                            <Trash2 className="w-4 h-4" />
+                          </button>
+                        </div>
+                      )}
+                    </div>
+                    
+                    {/* Floating Action Button - Mobile focus */}
+                    <div className="absolute bottom-6 right-6">
+                      <button 
+                        onClick={() => handleWhatsApp(p)}
+                        className="w-14 h-14 bg-white/10 backdrop-blur-md border border-white/20 rounded-2xl flex items-center justify-center text-white hover:bg-premium-pink hover:text-black transition-all shadow-xl group/btn"
+                      >
+                        <MessageCircle className="w-7 h-7 group-hover/btn:scale-110 transition-transform" />
+                      </button>
+                    </div>
+                  </div>
+
+                  <div className="space-y-4 px-2">
+                    <div className="space-y-1">
+                      <h3 className="font-display text-2xl text-white group-hover:text-premium-pink transition-colors line-clamp-1 italic">{p.name}</h3>
+                      <p className="text-[10px] uppercase font-black tracking-widest text-white/10">{p.category || 'Luxury Collection'}</p>
+                    </div>
+
+                    <div className="flex items-end justify-between">
+                      <div className="space-y-1">
+                        <span className="text-[9px] uppercase font-black tracking-widest text-white/20">Investimento</span>
+                        <p className="text-3xl font-display text-white">R$ {p.sellPrice.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}</p>
+                      </div>
+                      {p.quantity < 3 && p.quantity > 0 && (
+                        <div className="flex items-center gap-1.5 text-orange-400/60 pb-1">
+                          <Flame className="w-3 h-3" />
+                          <span className="text-[8px] font-black uppercase tracking-widest">Últimas Unidades</span>
+                        </div>
+                      )}
+                    </div>
+
+                    <button 
+                      onClick={() => handleWhatsApp(p)}
+                      className="w-full h-14 bg-white/5 border border-white/5 rounded-2xl flex items-center justify-center gap-3 text-[10px] font-black uppercase tracking-[0.2em] hover:bg-premium-pink hover:text-black transition-all group/buy"
+                    >
+                      Garanta o seu agora
+                      <ArrowRight className="w-4 h-4 transition-transform group-hover/buy:translate-x-1" />
+                    </button>
+                  </div>
+                </motion.div>
+              ))}
+            </motion.div>
+          </AnimatePresence>
         )}
       </div>
 

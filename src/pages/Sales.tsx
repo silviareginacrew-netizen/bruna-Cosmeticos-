@@ -54,13 +54,19 @@ export default function Sales() {
       return;
     }
     const userId = auth.currentUser.uid;
+    
+    const timeoutId = setTimeout(() => {
+      if (loading) setLoading(false);
+    }, 5000);
 
     const unsubSales = onSnapshot(query(collection(db, 'users', userId, 'sales')), (snap) => {
       setSales(snap.docs.map(doc => ({ id: doc.id, ...doc.data() } as Sale)));
       setLoading(false);
+      clearTimeout(timeoutId);
     }, (err) => {
       console.error(err);
       setLoading(false);
+      clearTimeout(timeoutId);
     });
 
     const unsubProducts = onSnapshot(query(collection(db, 'users', userId, 'inventory')), (snap) => {
@@ -75,6 +81,7 @@ export default function Sales() {
       unsubSales();
       unsubProducts();
       unsubClients();
+      clearTimeout(timeoutId);
     };
   }, [auth.currentUser]);
 

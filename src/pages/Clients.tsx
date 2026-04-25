@@ -49,16 +49,26 @@ export default function Clients() {
       return;
     }
     const userId = auth.currentUser.uid;
+    
+    const timeoutId = setTimeout(() => {
+      if (loading) setLoading(false);
+    }, 5000);
+
     const q = query(collection(db, 'users', userId, 'clients'));
     const unsub = onSnapshot(q, (snap) => {
       const data = snap.docs.map(doc => ({ id: doc.id, ...doc.data() } as Client));
       setClients(data);
       setLoading(false);
+      clearTimeout(timeoutId);
     }, (err) => {
       console.error(err);
       setLoading(false);
+      clearTimeout(timeoutId);
     });
-    return () => unsub();
+    return () => {
+      unsub();
+      clearTimeout(timeoutId);
+    };
   }, [auth.currentUser]);
 
   const handleSubmit = async (e: FormEvent) => {
