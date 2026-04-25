@@ -32,16 +32,22 @@ export default function Cashier() {
   const [filterBrand, setFilterBrand] = useState<Brand | 'Geral' | 'Todas'>('Todas');
 
   useEffect(() => {
-    if (!auth.currentUser) return;
+    if (!auth.currentUser) {
+      setLoading(false);
+      return;
+    }
     const userId = auth.currentUser.uid;
     const q = query(collection(db, 'users', userId, 'transactions'), orderBy('date', 'desc'), limit(100));
     
     const unsub = onSnapshot(q, (snap) => {
       setTransactions(snap.docs.map(doc => ({ id: doc.id, ...doc.data() } as Transaction)));
       setLoading(false);
+    }, (err) => {
+      console.error(err);
+      setLoading(false);
     });
     return () => unsub();
-  }, []);
+  }, [auth.currentUser]);
 
   const cashierStats = transactions.reduce((acc, curr) => {
     const val = curr.value;
@@ -169,8 +175,9 @@ export default function Cashier() {
         </div>
 
         {loading ? (
-          <div className="flex justify-center p-20">
+          <div className="flex flex-col items-center justify-center p-20 gap-4">
             <Loader2 className="w-10 h-10 animate-spin text-premium-pink" />
+            <p className="text-[10px] uppercase font-black tracking-[0.3em] text-white/20">Carregando transações...</p>
           </div>
         ) : (
           <div className="space-y-4">

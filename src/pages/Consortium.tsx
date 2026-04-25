@@ -52,20 +52,26 @@ export default function ConsortiumPage() {
   const [isSubmitting, setIsSubmitting] = useState(false);
 
   useEffect(() => {
-    if (!auth.currentUser) return;
+    if (!auth.currentUser) {
+      setLoading(false);
+      return;
+    }
     const userId = auth.currentUser.uid;
 
     const unsubCons = onSnapshot(query(collection(db, 'users', userId, 'consortiums')), (snap) => {
       const data = snap.docs.map(doc => ({ id: doc.id, ...doc.data() } as Consortium));
       setConsortiums(data);
+      setLoading(false);
       
       // Load installments for each
       data.forEach(con => {
-        const unsubIns = onSnapshot(query(collection(db, 'users', userId, 'consortiums', con.id, 'installments')), (insSnap) => {
+        onSnapshot(query(collection(db, 'users', userId, 'consortiums', con.id, 'installments')), (insSnap) => {
           const insData = insSnap.docs.map(d => ({ id: d.id, ...d.data() } as Installment));
           setInstallmentsMap(prev => ({ ...prev, [con.id]: insData.sort((a,b) => a.number - b.number) }));
         });
       });
+    }, (err) => {
+      console.error(err);
       setLoading(false);
     });
 
@@ -74,7 +80,7 @@ export default function ConsortiumPage() {
     });
 
     return () => unsubCons();
-  }, []);
+  }, [auth.currentUser]);
 
   const handleCreate = async (e: FormEvent) => {
     e.preventDefault();
@@ -97,6 +103,7 @@ export default function ConsortiumPage() {
            ...consortiumData,
            updatedAt: serverTimestamp()
          });
+         alert('Consórcio atualizado com sucesso!');
       } else {
         const conRef = await addDoc(collection(db, 'users', userId, 'consortiums'), {
           ...consortiumData,
@@ -118,6 +125,7 @@ export default function ConsortiumPage() {
             status: 'pending'
           });
         }
+        alert('Consórcio criado com sucesso!');
       }
 
       setIsModalOpen(false);
@@ -143,19 +151,25 @@ export default function ConsortiumPage() {
     if (!auth.currentUser) return;
     const userId = auth.currentUser.uid;
     
-    await updateDoc(doc(db, 'users', userId, 'consortiums', consortiumId, 'installments', installmentId), {
-      status: 'paid',
-      paidAt: new Date().toISOString()
-    });
+    try {
+      await updateDoc(doc(db, 'users', userId, 'consortiums', consortiumId, 'installments', installmentId), {
+        status: 'paid',
+        paidAt: new Date().toISOString()
+      });
 
-    // Add to transaction log
-    await addDoc(collection(db, 'users', userId, 'transactions'), {
-      type: 'entry',
-      brand: 'Geral',
-      value,
-      description: `Parcela paga - Consórcio #${consortiumId.slice(0,5)}`,
-      date: new Date().toISOString()
-    });
+      // Add to transaction log
+      await addDoc(collection(db, 'users', userId, 'transactions'), {
+        type: 'entry',
+        brand: 'Geral',
+        value,
+        description: `Parcela paga - Consórcio #${consortiumId.slice(0,5)}`,
+        date: new Date().toISOString()
+      });
+      alert('Parcela marcada como paga!');
+    } catch (err) {
+      console.error(err);
+      alert('Erro ao processar pagamento.');
+    }
   };
 
   const handleDelete = async (id: string) => {
@@ -163,9 +177,10 @@ export default function ConsortiumPage() {
     try {
       const userId = auth.currentUser.uid;
       await deleteDoc(doc(db, 'users', userId, 'consortiums', id));
-      // Note: In real app, we should also delete subcollection installments
+      alert('Consórcio excluído com sucesso!');
     } catch (err) {
       console.error(err);
+      alert('Erro ao excluir consórcio.');
     }
   };
 
@@ -197,15 +212,19 @@ export default function ConsortiumPage() {
             <h1 className="text-4xl font-display font-semibold text-pink-gradient mb-1">Consórcio</h1>
             <p className="text-white/40 text-sm italic font-light tracking-wide italic">Gestão de parcelas e sonhos.</p>
           </div>
-          <button onClick={() => setIsModalOpen(true)} className="w-14 h-14 btn-premium rounded-2xl shadow-xl">
-            <Plus className="w-6 h-6" />
+          <button 
+            onClick={() => setIsModalOpen(true)} 
+            className="w-14 h-14 bg-premium-pink text-white rounded-full shadow-[0_10px_30px_rgba(212,175,55,0.3)] flex items-center justify-center hover:scale-110 active:scale-95 transition-all border-2 border-white/20"
+          >
+            <Plus className="w-8 h-8 stroke-[3]" />
           </button>
         </div>
       </header>
 
       {loading ? (
-        <div className="flex justify-center p-20">
+        <div className="flex flex-col items-center justify-center p-20 gap-4">
           <Loader2 className="w-10 h-10 animate-spin text-premium-pink" />
+          <p className="text-[10px] uppercase font-black tracking-[0.3em] text-white/20">Carregando consórcios...</p>
         </div>
       ) : (
         <div className="grid grid-cols-1 md:grid-cols-2 gap-6">

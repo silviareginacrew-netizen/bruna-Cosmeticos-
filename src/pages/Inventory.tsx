@@ -33,6 +33,7 @@ export default function Inventory() {
   const [filterBrand, setFilterBrand] = useState<Brand | 'Todas'>('Todas');
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [editingProduct, setEditingProduct] = useState<Product | null>(null);
+  const [isSubmitting, setIsSubmitting] = useState(false);
 
   // Form State
   const [formData, setFormData] = useState({
@@ -64,19 +65,27 @@ export default function Inventory() {
   };
 
   useEffect(() => {
-    if (!auth.currentUser) return;
-    const q = query(collection(db, 'users', auth.currentUser.uid, 'inventory'));
+    if (!auth.currentUser) {
+      setLoading(false);
+      return;
+    }
+    const userId = auth.currentUser.uid;
+    const q = query(collection(db, 'users', userId, 'inventory'));
     const unsub = onSnapshot(q, (snap) => {
       const data = snap.docs.map(doc => ({ id: doc.id, ...doc.data() } as Product));
       setProducts(data);
       setLoading(false);
+    }, (err) => {
+      console.error(err);
+      setLoading(false);
     });
     return () => unsub();
-  }, []);
+  }, [auth.currentUser]);
 
   const handleSubmit = async (e: FormEvent) => {
     e.preventDefault();
     if (!auth.currentUser) return;
+    setIsSubmitting(true);
 
     try {
       if (editingProduct) {
@@ -84,22 +93,33 @@ export default function Inventory() {
           ...formData,
           updatedAt: serverTimestamp()
         });
+        alert('Produto atualizado com sucesso!');
       } else {
         await addDoc(collection(db, 'users', auth.currentUser.uid, 'inventory'), {
           ...formData,
           createdAt: serverTimestamp(),
           updatedAt: serverTimestamp()
         });
+        alert('Produto cadastrado com sucesso!');
       }
       closeModal();
     } catch (err) {
       console.error(err);
+      alert('Erro ao salvar produto. Tente novamente.');
+    } finally {
+      setIsSubmitting(false);
     }
   };
 
   const handleDelete = async (id: string) => {
     if (!auth.currentUser || !confirm('Tem certeza que deseja excluir este produto?')) return;
-    await deleteDoc(doc(db, 'users', auth.currentUser.uid, 'inventory', id));
+    try {
+      await deleteDoc(doc(db, 'users', auth.currentUser.uid, 'inventory', id));
+      alert('Produto excluído com sucesso!');
+    } catch (err) {
+      console.error(err);
+      alert('Erro ao excluir produto.');
+    }
   };
 
   const openModal = (product?: Product) => {
@@ -154,8 +174,11 @@ export default function Inventory() {
             <h1 className="text-4xl font-display font-semibold text-pink-gradient mb-1">Estoque</h1>
             <p className="text-white/40 text-sm italic font-light tracking-wide italic">Curadoria de luxo BC.</p>
           </div>
-          <button onClick={() => openModal()} className="w-14 h-14 btn-premium rounded-2xl shadow-xl">
-            <Plus className="w-6 h-6" />
+          <button 
+            onClick={() => openModal()} 
+            className="w-14 h-14 bg-premium-pink text-white rounded-full shadow-[0_10px_30px_rgba(212,175,55,0.3)] flex items-center justify-center hover:scale-110 active:scale-95 transition-all border-2 border-white/20"
+          >
+            <Plus className="w-8 h-8 stroke-[3]" />
           </button>
         </div>
       </header>
@@ -188,8 +211,9 @@ export default function Inventory() {
       </div>
 
       {loading ? (
-        <div className="flex justify-center p-20">
+        <div className="flex flex-col items-center justify-center p-20 gap-4">
           <Loader2 className="w-10 h-10 animate-spin text-premium-pink" />
+          <p className="text-[10px] uppercase font-black tracking-[0.3em] text-white/20">Carregando estoque...</p>
         </div>
       ) : (
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">

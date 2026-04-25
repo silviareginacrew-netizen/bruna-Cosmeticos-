@@ -49,11 +49,18 @@ export default function Sales() {
   const [isSubmitting, setIsSubmitting] = useState(false);
 
   useEffect(() => {
-    if (!auth.currentUser) return;
+    if (!auth.currentUser) {
+      setLoading(false);
+      return;
+    }
     const userId = auth.currentUser.uid;
 
     const unsubSales = onSnapshot(query(collection(db, 'users', userId, 'sales')), (snap) => {
       setSales(snap.docs.map(doc => ({ id: doc.id, ...doc.data() } as Sale)));
+      setLoading(false);
+    }, (err) => {
+      console.error(err);
+      setLoading(false);
     });
 
     const unsubProducts = onSnapshot(query(collection(db, 'users', userId, 'inventory')), (snap) => {
@@ -64,13 +71,12 @@ export default function Sales() {
       setClients(snap.docs.map(doc => ({ id: doc.id, ...doc.data() } as Client)));
     });
 
-    setLoading(false);
     return () => {
       unsubSales();
       unsubProducts();
       unsubClients();
     };
-  }, []);
+  }, [auth.currentUser]);
 
   const handleSale = async (e: FormEvent) => {
     e.preventDefault();
@@ -93,6 +99,7 @@ export default function Sales() {
           paymentMethod,
           brand: selectedProduct.brand
         });
+        alert('Venda atualizada com sucesso!');
       } else {
         await addDoc(collection(db, 'users', userId, 'sales'), {
           productId: selectedProduct.id,
@@ -120,6 +127,7 @@ export default function Sales() {
           description: `Venda: ${selectedProduct.name} x${quantity} (${selectedClient?.name || 'Avulsa'})`,
           date: new Date().toISOString()
         });
+        alert('Venda registrada com sucesso!');
       }
 
       setIsModalOpen(false);
@@ -135,8 +143,10 @@ export default function Sales() {
     if (!auth.currentUser || !confirm('Deseja excluir este registro de venda?')) return;
     try {
       await deleteDoc(doc(db, 'users', auth.currentUser.uid, 'sales', id));
+      alert('Venda excluída com sucesso!');
     } catch (err) {
       console.error(err);
+      alert('Erro ao excluir venda.');
     }
   };
 
@@ -168,15 +178,19 @@ export default function Sales() {
             <h1 className="text-4xl font-display font-semibold text-pink-gradient mb-1">Vendas</h1>
             <p className="text-white/40 text-sm italic font-light tracking-wide italic">Registro de faturamento.</p>
           </div>
-          <button onClick={() => setIsModalOpen(true)} className="w-14 h-14 btn-premium rounded-2xl shadow-xl">
-            <Plus className="w-6 h-6" />
+          <button 
+            onClick={() => setIsModalOpen(true)} 
+            className="w-14 h-14 bg-premium-pink text-white rounded-full shadow-[0_10px_30px_rgba(212,175,55,0.3)] flex items-center justify-center hover:scale-110 active:scale-95 transition-all border-2 border-white/20"
+          >
+            <Plus className="w-8 h-8 stroke-[3]" />
           </button>
         </div>
       </header>
 
       {loading ? (
-        <div className="flex justify-center p-20">
+        <div className="flex flex-col items-center justify-center p-20 gap-4">
           <Loader2 className="w-10 h-10 animate-spin text-premium-pink" />
+          <p className="text-[10px] uppercase font-black tracking-[0.3em] text-white/20">Carregando vendas...</p>
         </div>
       ) : (
         <div className="space-y-4">

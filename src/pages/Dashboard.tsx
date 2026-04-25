@@ -21,7 +21,8 @@ import {
   ArrowDownLeft,
   Share2,
   Check,
-  ShoppingCart
+  ShoppingCart,
+  Loader2
 } from 'lucide-react';
 import { motion } from 'motion/react';
 import { cn } from '../lib/utils';
@@ -64,6 +65,7 @@ function MetricCard({ title, value, icon: Icon, trend, color = 'white' }: Metric
 
 export default function Dashboard() {
   const navigate = useNavigate();
+  const [loading, setLoading] = useState(true);
   const [metrics, setMetrics] = useState({
     monthlySales: 0,
     debtorsCount: 0,
@@ -72,6 +74,7 @@ export default function Dashboard() {
     activeConsortiums: 0,
     overdueInstallments: 0
   });
+
   const [copied, setCopied] = useState(false);
 
   const copyCatalogLink = () => {
@@ -83,17 +86,18 @@ export default function Dashboard() {
   };
 
   useEffect(() => {
-    if (!auth.currentUser) return;
+    if (!auth.currentUser) {
+      setLoading(false);
+      return;
+    }
     const userId = auth.currentUser.uid;
 
-    // Real-time listeners for dashboard metrics
-    // In a real app, some of these would be calculated or aggregated
-    
     // Low stock
     const stockQuery = query(collection(db, 'users', userId, 'inventory'), where('quantity', '<=', 5));
     const unsubStock = onSnapshot(stockQuery, (snap) => {
       setMetrics(prev => ({ ...prev, lowStock: snap.size }));
-    });
+      setLoading(false);
+    }, () => setLoading(false));
 
     // Active Consortiums
     const consortiumQuery = query(collection(db, 'users', userId, 'consortiums'), where('status', '==', 'active'));
@@ -101,13 +105,20 @@ export default function Dashboard() {
       setMetrics(prev => ({ ...prev, activeConsortiums: snap.size }));
     });
 
-    // We would add more listeners and calculations here
-    
     return () => {
       unsubStock();
       unsubConsortium();
     };
-  }, []);
+  }, [auth.currentUser]);
+
+  if (loading) {
+     return (
+        <div className="flex flex-col items-center justify-center p-20 gap-4 min-h-[60vh]">
+          <Loader2 className="w-10 h-10 animate-spin text-premium-pink" />
+          <p className="text-[10px] uppercase font-black tracking-[0.3em] text-white/20">Carregando painel...</p>
+        </div>
+     );
+  }
 
   const formatCurrency = (val: number) => 
     new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(val);

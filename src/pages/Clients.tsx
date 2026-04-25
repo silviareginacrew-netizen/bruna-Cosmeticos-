@@ -33,6 +33,7 @@ export default function Clients() {
   const [search, setSearch] = useState('');
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [editingClient, setEditingClient] = useState<Client | null>(null);
+  const [isSubmitting, setIsSubmitting] = useState(false);
 
   // Form State
   const [formData, setFormData] = useState({
@@ -43,19 +44,27 @@ export default function Clients() {
   });
 
   useEffect(() => {
-    if (!auth.currentUser) return;
-    const q = query(collection(db, 'users', auth.currentUser.uid, 'clients'));
+    if (!auth.currentUser) {
+      setLoading(false);
+      return;
+    }
+    const userId = auth.currentUser.uid;
+    const q = query(collection(db, 'users', userId, 'clients'));
     const unsub = onSnapshot(q, (snap) => {
       const data = snap.docs.map(doc => ({ id: doc.id, ...doc.data() } as Client));
       setClients(data);
       setLoading(false);
+    }, (err) => {
+      console.error(err);
+      setLoading(false);
     });
     return () => unsub();
-  }, []);
+  }, [auth.currentUser]);
 
   const handleSubmit = async (e: FormEvent) => {
     e.preventDefault();
     if (!auth.currentUser) return;
+    setIsSubmitting(true);
 
     try {
       if (editingClient) {
@@ -63,6 +72,7 @@ export default function Clients() {
           ...formData,
           updatedAt: serverTimestamp()
         });
+        alert('Cliente atualizado com sucesso!');
       } else {
         await addDoc(collection(db, 'users', auth.currentUser.uid, 'clients'), {
           ...formData,
@@ -70,16 +80,26 @@ export default function Clients() {
           createdAt: serverTimestamp(),
           updatedAt: serverTimestamp()
         });
+        alert('Cliente cadastrado com sucesso!');
       }
       closeModal();
     } catch (err) {
       console.error(err);
+      alert('Erro ao salvar cliente.');
+    } finally {
+      setIsSubmitting(false);
     }
   };
 
   const handleDelete = async (id: string) => {
     if (!auth.currentUser || !confirm('Tem certeza que deseja excluir este cliente?')) return;
-    await deleteDoc(doc(db, 'users', auth.currentUser.uid, 'clients', id));
+    try {
+      await deleteDoc(doc(db, 'users', auth.currentUser.uid, 'clients', id));
+      alert('Cliente excluído com sucesso!');
+    } catch (err) {
+      console.error(err);
+      alert('Erro ao excluir cliente.');
+    }
   };
 
   const openModal = (client?: Client) => {
@@ -126,8 +146,11 @@ export default function Clients() {
             <h1 className="text-4xl font-display font-semibold text-pink-gradient mb-1">Clientes</h1>
             <p className="text-white/40 text-sm italic font-light tracking-wide italic">Sua rede de influência.</p>
           </div>
-          <button onClick={() => openModal()} className="w-14 h-14 btn-premium rounded-2xl shadow-xl">
-            <Plus className="w-6 h-6" />
+          <button 
+            onClick={() => openModal()} 
+            className="w-14 h-14 bg-premium-pink text-white rounded-full shadow-[0_10px_30px_rgba(212,175,55,0.3)] flex items-center justify-center hover:scale-110 active:scale-95 transition-all border-2 border-white/20"
+          >
+            <Plus className="w-8 h-8 stroke-[3]" />
           </button>
         </div>
       </header>
@@ -144,8 +167,9 @@ export default function Clients() {
       </div>
 
       {loading ? (
-        <div className="flex justify-center p-20">
+        <div className="flex flex-col items-center justify-center p-20 gap-4">
           <Loader2 className="w-10 h-10 animate-spin text-premium-pink" />
+          <p className="text-[10px] uppercase font-black tracking-[0.3em] text-white/20">Carregando clientes...</p>
         </div>
       ) : (
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
@@ -277,8 +301,8 @@ export default function Clients() {
                 </div>
 
                 <div className="pt-4">
-                  <button type="submit" className="btn-premium w-full">
-                    {editingClient ? 'Salvar Alterações' : 'Cadastrar Cliente'}
+                  <button type="submit" disabled={isSubmitting} className="btn-premium w-full flex items-center justify-center gap-2">
+                    {isSubmitting ? <Loader2 className="w-5 h-5 animate-spin" /> : (editingClient ? 'Salvar Alterações' : 'Cadastrar Cliente')}
                   </button>
                 </div>
               </form>
