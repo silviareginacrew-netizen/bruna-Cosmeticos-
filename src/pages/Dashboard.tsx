@@ -74,7 +74,7 @@ export default function Dashboard() {
 
   const copyCatalogLink = () => {
     if (!auth.currentUser) return;
-    const url = `${window.location.origin}/app/${auth.currentUser.uid}`;
+    const url = `${window.location.origin}/catalogo/${auth.currentUser.uid}`;
     navigator.clipboard.writeText(url);
     setCopied(true);
     setTimeout(() => setCopied(false), 2000);
@@ -129,21 +129,21 @@ export default function Dashboard() {
         {/* Brand Selection / Quick Access */}
         <div className="grid grid-cols-2 gap-4">
           <button 
-            onClick={() => window.location.href = '/inventory'}
+            onClick={() => window.location.href = `/catalogo/${auth.currentUser?.uid}?tab=boticario`}
             className="card-premium bg-gradient-to-br from-dark-surface to-premium-pink/5 border-white/5 flex flex-col items-center justify-center p-8 gap-4 group hover:border-premium-pink/40 transition-all duration-500 overflow-hidden relative"
           >
             <div className="absolute -right-4 -top-4 w-12 h-12 bg-premium-pink/5 rounded-full blur-2xl group-hover:scale-150 transition-transform" />
             <Package className="w-8 h-8 text-premium-pink mb-1" />
             <span className="font-display text-xl text-white">O Boticário</span>
-            <span className="text-[8px] uppercase tracking-[0.25em] text-white/20 font-black">Módulo Interno</span>
+            <span className="text-[8px] uppercase tracking-[0.25em] text-white/20 font-black">Vitrine Pública</span>
           </button>
           <button 
-            onClick={() => window.location.href = '/inventory'}
+            onClick={() => window.location.href = `/catalogo/${auth.currentUser?.uid}?tab=marykay`}
             className="card-premium bg-gradient-to-br from-dark-surface to-white/5 border-white/5 flex flex-col items-center justify-center p-8 gap-4 group hover:border-white/20 transition-all duration-500 overflow-hidden relative"
           >
             <Package className="w-8 h-8 text-white/40 mb-1" />
             <span className="font-display text-xl text-white">Mary Kay</span>
-            <span className="text-[8px] uppercase tracking-[0.25em] text-white/20 font-black">Módulo Interno</span>
+            <span className="text-[8px] uppercase tracking-[0.25em] text-white/20 font-black">Vitrine Pública</span>
           </button>
         </div>
       </header>

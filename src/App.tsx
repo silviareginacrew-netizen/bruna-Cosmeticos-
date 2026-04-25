@@ -43,6 +43,7 @@ export default function App() {
         
         {/* Public Catalog */}
         <Route path="/app/:businessSlug" element={<Catalog />} />
+        <Route path="/catalogo/:businessSlug" element={<Catalog />} />
 
         {/* Private Routes */}
         <Route element={user ? <Layout /> : <Navigate to="/login" />}>
