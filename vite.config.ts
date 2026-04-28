@@ -16,7 +16,11 @@ export default defineConfig(({mode}) => {
         'imagekit': path.resolve(__dirname, './src/lib/empty-module.ts'),
         'node-fetch': path.resolve(__dirname, './src/lib/empty-module.ts'),
         'formdata-polyfill': path.resolve(__dirname, './src/lib/empty-module.ts'),
+        'formdata-polyfill/esm.min.js': path.resolve(__dirname, './src/lib/empty-module.ts'),
       },
+    },
+    optimizeDeps: {
+      exclude: ['imagekit', 'node-fetch', 'formdata-polyfill'],
     },
     server: {
       // HMR is disabled in AI Studio via DISABLE_HMR env var.

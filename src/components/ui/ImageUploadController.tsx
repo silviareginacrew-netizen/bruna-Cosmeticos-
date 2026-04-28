@@ -24,13 +24,13 @@ export default function ImageUploadController({ onUploadComplete, onClose }: Ima
   const [errorMessage, setErrorMessage] = useState('');
 
   const statusMessages: Record<UploadStatus, string> = {
-    idle: 'Selecione uma imagem',
-    preparing: 'Preparando imagem...',
-    uploading: 'Enviando foto...',
-    optimizing: 'Otimizando...',
-    saving: 'Salvando no acervo...',
-    completed: 'Upload concluído!',
-    error: 'Erro no upload'
+    idle: '📷 Selecione uma imagem',
+    preparing: '⏳ Preparando imagem...',
+    uploading: '🚀 Enviando para nuvem...',
+    optimizing: '☁️ Otimizando imagem...',
+    saving: '📦 Finalizando upload...',
+    completed: '✔ Upload concluído com sucesso',
+    error: '❌ Erro no upload'
   };
 
   const handleFile = async (e: React.ChangeEvent<HTMLInputElement>) => {

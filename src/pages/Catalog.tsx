@@ -116,11 +116,13 @@ export default function Catalog() {
     const matchesSearch = p.name.toLowerCase().includes(search.toLowerCase());
     
     // Normalized brand check to handle case variations
-    const productBrand = p.brand?.toLowerCase().trim();
+    const productBrand = p.brand?.toLowerCase().trim() || '';
+    const isBoticario = productBrand.includes('boticário') || productBrand.includes('boticario');
+    const isMaryKay = productBrand.includes('mary kay') || productBrand.includes('marykay') || productBrand.includes('mariquai') || productBrand.includes('mary kai');
     
     // Tab logic
-    if (activeTab === 'O Boticário') return matchesSearch && productBrand === 'o boticário';
-    if (activeTab === 'Mary Kay') return matchesSearch && productBrand === 'mary kay';
+    if (activeTab === 'O Boticário') return matchesSearch && isBoticario;
+    if (activeTab === 'Mary Kay') return matchesSearch && isMaryKay;
     if (activeTab === 'Promoções') return matchesSearch && (p.observations?.toLowerCase().includes('promoção') || p.sellPrice < (p.buyPrice * 1.3));
     if (activeTab === 'Novidades') return matchesSearch;
     if (activeTab === 'Mais Vendidos') return matchesSearch && p.quantity < 3; // Heuristic
