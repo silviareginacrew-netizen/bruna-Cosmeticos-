@@ -13,6 +13,9 @@ export default defineConfig(({mode}) => {
     resolve: {
       alias: {
         '@': path.resolve(__dirname, '.'),
+        'imagekit': path.resolve(__dirname, './src/lib/empty-module.ts'),
+        'node-fetch': path.resolve(__dirname, './src/lib/empty-module.ts'),
+        'formdata-polyfill': path.resolve(__dirname, './src/lib/empty-module.ts'),
       },
     },
     server: {

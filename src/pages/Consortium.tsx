@@ -31,7 +31,7 @@ import {
   Trash2,
   Edit2
 } from 'lucide-react';
-import { motion, AnimatePresence } from 'motion/react';
+import { motion, AnimatePresence } from 'framer-motion';
 import { cn } from '../lib/utils';
 import { generateConsortiumPDF } from '../services/pdfService';
 

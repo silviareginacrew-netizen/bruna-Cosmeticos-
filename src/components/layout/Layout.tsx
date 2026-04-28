@@ -3,7 +3,7 @@ import { LayoutDashboard, Package, Users, ShoppingCart, Wallet, CreditCard, LogO
 import { cn } from '../../lib/utils';
 import { auth } from '../../lib/firebase';
 import Logo from '../ui/Logo';
-import { motion } from 'motion/react';
+import { motion } from 'framer-motion';
 
 const NavItems = [
   { path: '/home', icon: LayoutDashboard, label: 'Dashboard' },

@@ -27,7 +27,7 @@ import {
   Plus,
   AlertCircle
 } from 'lucide-react';
-import { motion, AnimatePresence } from 'motion/react';
+import { motion, AnimatePresence } from 'framer-motion';
 import { useNavigate } from 'react-router-dom';
 import { cn } from '../lib/utils';
 
@@ -127,6 +127,12 @@ export default function Catalog() {
     
     return matchesSearch;
   });
+
+  const getOptimizedUrl = (url: string) => {
+    if (!url.includes('ik.imagekit.io')) return url;
+    // Add transformation for product cards (medium quality, webp, responsive width)
+    return `${url}?tr=w-600,q-80,f-auto`;
+  };
 
   const tabs = [
     { id: 'Promoções', icon: Stars, label: 'Promoções' },
@@ -249,7 +255,12 @@ export default function Catalog() {
                 >
                   <div className="aspect-[3/4] bg-dark-surface rounded-[2.5rem] overflow-hidden mb-6 relative border border-white/5 shadow-[0_32px_64px_-16px_rgba(0,0,0,0.5)]">
                     {p.imageUrl ? (
-                      <img src={p.imageUrl} alt={p.name} className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-1000" />
+                      <img 
+                        src={getOptimizedUrl(p.imageUrl)} 
+                        alt={p.name} 
+                        loading="lazy"
+                        className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-1000" 
+                      />
                     ) : (
                       <div className="w-full h-full flex items-center justify-center opacity-5">
                         <Package className="w-24 h-24" />

@@ -11,7 +11,7 @@ import {
 } from 'firebase/firestore';
 import { db, auth } from '../lib/firebase';
 import { Product, Brand } from '../types';
-import { compressImage } from '../lib/imageUtils';
+// import { compressImage } from '../lib/imageUtils'; // Removed in favor of ImageKit transformation
 import { 
   Package, 
   Search, 
@@ -24,8 +24,9 @@ import {
   AlertTriangle,
   Loader2
 } from 'lucide-react';
-import { motion, AnimatePresence } from 'motion/react';
+import { motion, AnimatePresence } from 'framer-motion';
 import { cn } from '../lib/utils';
+import ImageUploadController from '../components/ui/ImageUploadController';
 
 import { useLocation } from 'react-router-dom';
 
@@ -38,6 +39,7 @@ export default function Inventory() {
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [editingProduct, setEditingProduct] = useState<Product | null>(null);
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [isUploading, setIsUploading] = useState(false);
 
   // Form State
   const [formData, setFormData] = useState({
@@ -59,21 +61,9 @@ export default function Inventory() {
     }
   }, [location.pathname]);
 
-  const handleImageUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
-    const file = e.target.files?.[0];
-    if (file) {
-      const reader = new FileReader();
-      reader.onloadend = async () => {
-        try {
-          const compressed = await compressImage(reader.result as string, 1000, 1000, 0.6);
-          setFormData({ ...formData, imageUrl: compressed });
-        } catch (err) {
-          console.error('Erro na compressão:', err);
-          setFormData({ ...formData, imageUrl: reader.result as string });
-        }
-      };
-      reader.readAsDataURL(file);
-    }
+  const handleImageComplete = (url: string) => {
+    setFormData({ ...formData, imageUrl: url });
+    setIsUploading(false);
   };
 
   useEffect(() => {
@@ -200,6 +190,11 @@ export default function Inventory() {
     return matchesSearch && matchesBrand;
   });
 
+  const getOptimizedUrl = (url: string) => {
+    if (!url.includes('ik.imagekit.io')) return url;
+    return `${url}?tr=w-400,q-80,f-auto`;
+  };
+
   return (
     <div className="space-y-8 pb-10">
       <header className="flex flex-col gap-6">
@@ -271,7 +266,7 @@ export default function Inventory() {
                 
                 <div className="aspect-[4/5] bg-gradient-to-b from-white/5 to-transparent rounded-2xl mb-5 flex items-center justify-center overflow-hidden border border-white/5 relative">
                   {p.imageUrl ? (
-                    <img src={p.imageUrl} alt={p.name} className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-700" />
+                    <img src={getOptimizedUrl(p.imageUrl)} alt={p.name} className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-700" />
                   ) : (
                     <Package className="w-16 h-16 text-white/5" />
                   )}
@@ -344,13 +339,19 @@ export default function Inventory() {
               </h2>
 
               <form onSubmit={handleSubmit} className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                <div className="md:col-span-2 flex flex-col items-center gap-4 py-4 bg-white/5 rounded-3xl border border-dashed border-white/10 group hover:border-premium-pink/40 transition-all cursor-pointer relative overflow-hidden">
+                <div 
+                  onClick={() => setIsUploading(true)}
+                  className="md:col-span-2 flex flex-col items-center gap-4 py-4 bg-white/5 rounded-3xl border border-dashed border-white/10 group hover:border-premium-pink/40 transition-all cursor-pointer relative overflow-hidden"
+                >
                   {formData.imageUrl ? (
                     <div className="relative w-full aspect-video">
                       <img src={formData.imageUrl} alt="Preview" className="w-full h-full object-cover rounded-2xl" />
                       <button 
                         type="button"
-                        onClick={() => setFormData({...formData, imageUrl: ''})}
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          setFormData({...formData, imageUrl: ''});
+                        }}
                         className="absolute top-2 right-2 p-2 bg-black/60 backdrop-blur-md rounded-full text-white/60 hover:text-red-400"
                       >
                         <Trash2 className="w-4 h-4" />
@@ -359,15 +360,9 @@ export default function Inventory() {
                   ) : (
                     <div className="py-8 flex flex-col items-center gap-2">
                        <Camera className="w-10 h-10 text-white/20 group-hover:text-premium-pink transition-colors" />
-                       <p className="text-[10px] uppercase font-black tracking-widest text-white/20">Tirar foto ou Galeria</p>
+                       <p className="text-[10px] uppercase font-black tracking-widest text-white/20">Registrar Foto Premium</p>
                     </div>
                   )}
-                  <input 
-                    type="file" 
-                    accept="image/*" 
-                    className="absolute inset-0 opacity-0 cursor-pointer"
-                    onChange={handleImageUpload}
-                  />
                 </div>
 
                 <div className="md:col-span-2">
@@ -476,6 +471,15 @@ export default function Inventory() {
               </form>
             </motion.div>
           </div>
+        )}
+      </AnimatePresence>
+
+      <AnimatePresence>
+        {isUploading && (
+          <ImageUploadController 
+            onUploadComplete={handleImageComplete}
+            onClose={() => setIsUploading(false)}
+          />
         )}
       </AnimatePresence>
     </div>

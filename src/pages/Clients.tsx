@@ -24,7 +24,7 @@ import {
   Loader2,
   MessageCircle
 } from 'lucide-react';
-import { motion, AnimatePresence } from 'motion/react';
+import { motion, AnimatePresence } from 'framer-motion';
 import { cn } from '../lib/utils';
 
 export default function Clients() {

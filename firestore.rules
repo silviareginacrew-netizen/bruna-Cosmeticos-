@@ -81,13 +81,13 @@ service cloud.firestore {
     // --- Collections ---
 
     match /users/{userId} {
-      allow get: if isOwner(userId);
+      allow get: if true; // Public profile for catalog
       allow create: if isOwner(userId) && isValidUser(incoming());
       allow update: if isOwner(userId) && isValidUser(incoming());
       
       match /inventory/{productId} {
-        allow list: if isOwner(userId);
-        allow get: if isOwner(userId);
+        allow list: if true; // Public catalog
+        allow get: if true; // Public catalog
         allow create: if isOwner(userId) && isValidProduct(incoming());
         allow update: if isOwner(userId) && isValidProduct(incoming());
         allow delete: if isOwner(userId);

@@ -11,7 +11,7 @@ import { auth, db } from '../lib/firebase';
 import { doc, setDoc, serverTimestamp } from 'firebase/firestore';
 import Logo from '../components/ui/Logo';
 import { Mail, Lock, Loader2, ArrowRight, Eye, EyeOff, Check } from 'lucide-react';
-import { motion, AnimatePresence } from 'motion/react';
+import { motion, AnimatePresence } from 'framer-motion';
 import { cn } from '../lib/utils';
 
 export default function Login() {
