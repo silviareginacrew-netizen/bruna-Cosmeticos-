@@ -69,21 +69,28 @@ export default function Inventory() {
       }
     }, 5000);
 
-    const q = query(collection(db, 'users', userId, 'inventory'));
-    const unsub = onSnapshot(q, (snap) => {
-      const data = snap.docs.map(doc => ({ id: doc.id, ...doc.data() } as Product));
-      setProducts(data);
+    try {
+      const q = query(collection(db, 'users', userId, 'inventory'));
+      const unsub = onSnapshot(q, (snap) => {
+        console.log("Inventory Snap:", snap.size);
+        const data = snap.docs.map(doc => ({ id: doc.id, ...doc.data() } as Product));
+        setProducts(data);
+        setLoading(false);
+        clearTimeout(timeoutId);
+      }, (err) => {
+        console.error("Erro Inventory Listener:", err);
+        setLoading(false);
+        clearTimeout(timeoutId);
+      });
+      return () => {
+        unsub();
+        clearTimeout(timeoutId);
+      };
+    } catch (error) {
+      console.error("Erro setup Inventory:", error);
       setLoading(false);
       clearTimeout(timeoutId);
-    }, (err) => {
-      console.error(err);
-      setLoading(false);
-      clearTimeout(timeoutId);
-    });
-    return () => {
-      unsub();
-      clearTimeout(timeoutId);
-    };
+    }
   }, [auth.currentUser]);
 
   const handleSubmit = async (e: FormEvent) => {

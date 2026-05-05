@@ -42,19 +42,31 @@ export default function Cashier() {
     const userId = auth.currentUser.uid;
     setLoading(true);
     
-    const unsubTrans = onSnapshot(query(collection(db, 'users', userId, 'transactions'), orderBy('date', 'desc'), limit(50)), (snap) => {
-      setTransactions(snap.docs.map(doc => ({ id: doc.id, ...doc.data() } as Transaction)));
+    try {
+      const unsubTrans = onSnapshot(query(collection(db, 'users', userId, 'transactions'), orderBy('date', 'desc'), limit(50)), (snap) => {
+        console.log("Cashier Transactions Snap:", snap.size);
+        setTransactions(snap.docs.map(doc => ({ id: doc.id, ...doc.data() } as Transaction)));
+        setLoading(false);
+      }, (error) => {
+        console.error("Erro ao carregar transações:", error);
+        setLoading(false);
+      });
+
+      const unsubSales = onSnapshot(collection(db, 'users', userId, 'sales'), (snap) => {
+        console.log("Cashier Sales Snap:", snap.size);
+        setSales(snap.docs.map(doc => ({ id: doc.id, ...doc.data() })));
+      }, (error) => {
+        console.error("Erro ao carregar vendas no caixa:", error);
+      });
+
+      return () => {
+        unsubTrans();
+        unsubSales();
+      };
+    } catch (error) {
+      console.error("Erro fatal no setup do Caixa:", error);
       setLoading(false);
-    });
-
-    const unsubSales = onSnapshot(collection(db, 'users', userId, 'sales'), (snap) => {
-      setSales(snap.docs.map(doc => ({ id: doc.id, ...doc.data() })));
-    });
-
-    return () => {
-      unsubTrans();
-      unsubSales();
-    };
+    }
   }, [auth.currentUser]);
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -84,21 +96,27 @@ export default function Cashier() {
 
   const today = new Date().toISOString().split('T')[0];
   
-  const stats = transactions.reduce((acc, curr) => {
-    const isToday = curr.date?.startsWith(today);
-    if (curr.type === 'entry') {
-      acc.totalEntries += curr.value;
-      if (isToday) acc.todayEntries += curr.value;
-    } else {
-      acc.totalExits += curr.value;
-      if (isToday) acc.todayExits += curr.value;
+  const stats = (transactions || []).reduce((acc, curr) => {
+    try {
+      const val = Number(curr?.value) || 0;
+      const isToday = curr?.date?.startsWith(today) || false;
+      
+      if (curr?.type === 'entry') {
+        acc.totalEntries += val;
+        if (isToday) acc.todayEntries += val;
+      } else if (curr?.type === 'exit') {
+        acc.totalExits += val;
+        if (isToday) acc.todayExits += val;
+      }
+    } catch (e) {
+      console.error("Erro ao processar transação:", e, curr);
     }
     return acc;
   }, { totalEntries: 0, totalExits: 0, todayEntries: 0, todayExits: 0 });
 
-  const todaySalesTotal = sales
-    .filter(s => s.date?.startsWith(today) && s.status !== 'cancelado')
-    .reduce((acc, s) => acc + (s.totalValue || 0), 0);
+  const todaySalesTotal = (sales || [])
+    .filter(s => s && s.date?.startsWith(today) && s.status !== 'cancelado')
+    .reduce((acc, s) => acc + (Number(s?.totalValue) || 0), 0);
 
   const formatCurrency = (val: number) => 
     new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(val);
@@ -178,41 +196,48 @@ export default function Cashier() {
           </div>
         ) : (
           <div className="space-y-4">
-            {transactions.map((t, idx) => (
-              <motion.div 
-                initial={{ opacity: 0, y: 10 }}
-                animate={{ opacity: 1, y: 0 }}
-                transition={{ delay: idx * 0.05 }}
-                key={t.id} 
-                className="group flex items-center justify-between p-6 bg-white/[0.02] border border-white/5 rounded-[2rem] hover:bg-white/[0.04] transition-all duration-500"
-              >
-                <div className="flex items-center gap-5">
-                  <div className={cn(
-                    "w-12 h-12 rounded-2xl flex items-center justify-center shadow-inner",
-                    t.type === 'entry' ? "bg-green-500/5 text-green-500/60" : "bg-red-500/5 text-red-500/60"
-                  )}>
-                    {t.type === 'entry' ? <ArrowUpRight className="w-5 h-5" /> : <ArrowDownLeft className="w-5 h-5" />}
+            {transactions.length === 0 ? (
+              <div className="py-20 text-center flex flex-col items-center gap-6 bg-white/[0.01] border border-dashed border-white/5 rounded-[2rem]">
+                <DollarSign className="w-16 h-16 text-white/[0.02]" />
+                <p className="text-white/10 font-black tracking-widest uppercase text-[10px]">Nenhum movimento localizado</p>
+              </div>
+            ) : (
+              transactions.map((t, idx) => (
+                <motion.div 
+                  initial={{ opacity: 0, y: 10 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  transition={{ delay: idx * 0.05 }}
+                  key={t.id} 
+                  className="group flex items-center justify-between p-6 bg-white/[0.02] border border-white/5 rounded-[2rem] hover:bg-white/[0.04] transition-all duration-500"
+                >
+                  <div className="flex items-center gap-5">
+                    <div className={cn(
+                      "w-12 h-12 rounded-2xl flex items-center justify-center shadow-inner",
+                      t.type === 'entry' ? "bg-green-500/5 text-green-500/60" : "bg-red-500/5 text-red-500/60"
+                    )}>
+                      {t.type === 'entry' ? <ArrowUpRight className="w-5 h-5" /> : <ArrowDownLeft className="w-5 h-5" />}
+                    </div>
+                    <div>
+                      <p className="text-sm font-bold text-white/70 mb-0.5">{t.description || 'Sem descrição'}</p>
+                      <p className="text-[9px] text-white/10 uppercase font-black tracking-widest leading-none">
+                        {t.date ? new Date(t.date).toLocaleDateString('pt-BR') : 'Sem data'} • {t.brand || 'Geral'}
+                      </p>
+                    </div>
                   </div>
-                  <div>
-                    <p className="text-sm font-bold text-white/70 mb-0.5">{t.description}</p>
-                    <p className="text-[9px] text-white/10 uppercase font-black tracking-widest leading-none">
-                      {new Date(t.date).toLocaleDateString('pt-BR')} • {t.brand}
+                  <div className="flex items-center gap-4">
+                    <p className={cn(
+                      "text-base font-bold tracking-tight",
+                      t.type === 'entry' ? "text-green-500" : "text-red-500"
+                    )}>
+                      {t.type === 'entry' ? '+' : '-'} {formatCurrency(Number(t.value) || 0)}
                     </p>
+                    <button onClick={() => handleDelete(t.id)} className="w-8 h-8 flex items-center justify-center rounded-lg bg-red-500/0 hover:bg-red-500/10 text-white/0 group-hover:text-red-500/40 transition-all duration-300">
+                      <Trash2 className="w-4 h-4" />
+                    </button>
                   </div>
-                </div>
-                <div className="flex items-center gap-4">
-                  <p className={cn(
-                    "text-base font-bold tracking-tight",
-                    t.type === 'entry' ? "text-green-500" : "text-red-500"
-                  )}>
-                    {t.type === 'entry' ? '+' : '-'} {formatCurrency(t.value)}
-                  </p>
-                  <button onClick={() => handleDelete(t.id)} className="w-8 h-8 flex items-center justify-center rounded-lg bg-red-500/0 hover:bg-red-500/10 text-white/0 group-hover:text-red-500/40 transition-all duration-300">
-                    <Trash2 className="w-4 h-4" />
-                  </button>
-                </div>
-              </motion.div>
-            ))}
+                </motion.div>
+              ))
+            )}
           </div>
         )}
       </div>

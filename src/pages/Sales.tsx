@@ -59,30 +59,37 @@ export default function Sales() {
       if (loading) setLoading(false);
     }, 5000);
 
-    const unsubSales = onSnapshot(query(collection(db, 'users', userId, 'sales')), (snap) => {
-      setSales(snap.docs.map(doc => ({ id: doc.id, ...doc.data() } as Sale)));
+    try {
+      const unsubSales = onSnapshot(query(collection(db, 'users', userId, 'sales')), (snap) => {
+        console.log("Sales Snap:", snap.size);
+        setSales(snap.docs.map(doc => ({ id: doc.id, ...doc.data() } as Sale)));
+        setLoading(false);
+        clearTimeout(timeoutId);
+      }, (err) => {
+        console.error("Erro Sales Listener:", err);
+        setLoading(false);
+        clearTimeout(timeoutId);
+      });
+
+      const unsubProducts = onSnapshot(query(collection(db, 'users', userId, 'inventory')), (snap) => {
+        setProducts(snap.docs.map(doc => ({ id: doc.id, ...doc.data() } as Product)));
+      }, (err) => console.error("Erro Sales-Product Listener:", err));
+
+      const unsubClients = onSnapshot(query(collection(db, 'users', userId, 'clients')), (snap) => {
+        setClients(snap.docs.map(doc => ({ id: doc.id, ...doc.data() } as Client)));
+      }, (err) => console.error("Erro Sales-Client Listener:", err));
+
+      return () => {
+        unsubSales();
+        unsubProducts();
+        unsubClients();
+        clearTimeout(timeoutId);
+      };
+    } catch (error) {
+      console.error("Erro setup Sales:", error);
       setLoading(false);
       clearTimeout(timeoutId);
-    }, (err) => {
-      console.error(err);
-      setLoading(false);
-      clearTimeout(timeoutId);
-    });
-
-    const unsubProducts = onSnapshot(query(collection(db, 'users', userId, 'inventory')), (snap) => {
-      setProducts(snap.docs.map(doc => ({ id: doc.id, ...doc.data() } as Product)));
-    });
-
-    const unsubClients = onSnapshot(query(collection(db, 'users', userId, 'clients')), (snap) => {
-      setClients(snap.docs.map(doc => ({ id: doc.id, ...doc.data() } as Client)));
-    });
-
-    return () => {
-      unsubSales();
-      unsubProducts();
-      unsubClients();
-      clearTimeout(timeoutId);
-    };
+    }
   }, [auth.currentUser]);
 
   const handleSale = async (e: FormEvent) => {

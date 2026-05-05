@@ -57,28 +57,40 @@ export default function ConsortiumPage() {
     const userId = auth.currentUser.uid;
     setLoading(true);
 
-    const unsubCons = onSnapshot(query(collection(db, 'users', userId, 'consortiums')), async (snap) => {
-      const data = snap.docs.map(doc => ({ id: doc.id, ...doc.data() } as Consortium));
-      setConsortiums(data);
-      setLoading(false);
-      
-      // Clear old installment listeners if we were using them
-      // Alternatively, just do a one-time fetch or a more controlled sync
-      for (const con of data) {
-         const insSnap = await getDocs(query(collection(db, 'users', userId, 'consortiums', con.id, 'installments')));
-         const insData = insSnap.docs.map(d => ({ id: d.id, ...d.data() } as Installment));
-         setInstallmentsMap(prev => ({ ...prev, [con.id]: insData.sort((a,b) => a.number - b.number) }));
-      }
-    }, (err) => {
-      console.error(err);
-      setLoading(false);
-    });
+    try {
+      const unsubCons = onSnapshot(query(collection(db, 'users', userId, 'consortiums')), async (snap) => {
+        try {
+          console.log("Consortium Snap:", snap.size);
+          const data = snap.docs.map(doc => ({ id: doc.id, ...doc.data() } as Consortium));
+          setConsortiums(data);
+          setLoading(false);
+          
+          for (const con of data) {
+             const insSnap = await getDocs(query(collection(db, 'users', userId, 'consortiums', con.id, 'installments')));
+             const insData = insSnap.docs.map(d => ({ id: d.id, ...d.data() } as Installment));
+             setInstallmentsMap(prev => ({ ...prev, [con.id]: insData.sort((a,b) => a.number - b.number) }));
+          }
+        } catch (innerError) {
+          console.error("Erro ao processar dados de consórcio:", innerError);
+          setLoading(false);
+        }
+      }, (err) => {
+        console.error("Erro Consortium Listener:", err);
+        setLoading(false);
+      });
 
-    onSnapshot(query(collection(db, 'users', userId, 'clients')), (snap) => {
-      setClients(snap.docs.map(doc => ({ id: doc.id, ...doc.data() } as Client)));
-    });
+      const unsubClients = onSnapshot(query(collection(db, 'users', userId, 'clients')), (snap) => {
+        setClients(snap.docs.map(doc => ({ id: doc.id, ...doc.data() } as Client)));
+      }, (err) => console.error("Erro Consortium-Client Listener:", err));
 
-    return () => unsubCons();
+      return () => {
+        unsubCons();
+        unsubClients();
+      };
+    } catch (error) {
+      console.error("Erro setup Consortium:", error);
+      setLoading(false);
+    }
   }, [auth.currentUser]);
 
   const handleCreate = async (e: FormEvent) => {

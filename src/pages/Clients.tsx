@@ -54,21 +54,28 @@ export default function Clients() {
       if (loading) setLoading(false);
     }, 5000);
 
-    const q = query(collection(db, 'users', userId, 'clients'));
-    const unsub = onSnapshot(q, (snap) => {
-      const data = snap.docs.map(doc => ({ id: doc.id, ...doc.data() } as Client));
-      setClients(data);
+    try {
+      const q = query(collection(db, 'users', userId, 'clients'));
+      const unsub = onSnapshot(q, (snap) => {
+        console.log("Clients Snap:", snap.size);
+        const data = snap.docs.map(doc => ({ id: doc.id, ...doc.data() } as Client));
+        setClients(data);
+        setLoading(false);
+        clearTimeout(timeoutId);
+      }, (err) => {
+        console.error("Erro Clients Listener:", err);
+        setLoading(false);
+        clearTimeout(timeoutId);
+      });
+      return () => {
+        unsub();
+        clearTimeout(timeoutId);
+      };
+    } catch (error) {
+      console.error("Erro setup Clients:", error);
       setLoading(false);
       clearTimeout(timeoutId);
-    }, (err) => {
-      console.error(err);
-      setLoading(false);
-      clearTimeout(timeoutId);
-    });
-    return () => {
-      unsub();
-      clearTimeout(timeoutId);
-    };
+    }
   }, [auth.currentUser]);
 
   const handleSubmit = async (e: FormEvent) => {
