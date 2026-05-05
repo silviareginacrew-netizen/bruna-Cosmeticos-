@@ -103,7 +103,9 @@ export default function Sales() {
       
       const userId = auth.currentUser.uid;
       const totalValue = selectedProduct.sellPrice * quantity;
-      const status = 'entregue'; // By default, a sale is delivered in this simple system
+      const totalCost = (selectedProduct.buyPrice || 0) * quantity;
+      const profit = totalValue - totalCost;
+      const status = 'entregue';
 
       await runTransaction(db, async (transaction) => {
         const productRef = doc(db, 'users', userId, 'inventory', selectedProduct.id);
@@ -115,8 +117,6 @@ export default function Sales() {
 
         // 1. Handle Sales Record
         if (editingSale) {
-          // If editing, we need to handle the stock difference and status
-          // For simplicity in this "simple" version, we keep confirmed sales as delivered
           const stockDiff = editingSale.quantity - quantity;
           const newStock = currentStock + stockDiff;
           
@@ -130,6 +130,8 @@ export default function Sales() {
             clientName: selectedClient?.name || 'Venda Avulsa',
             quantity,
             totalValue,
+            totalCost,
+            profit,
             paymentMethod,
             brand: selectedProduct.brand,
             updatedAt: serverTimestamp()
@@ -149,9 +151,11 @@ export default function Sales() {
             clientName: selectedClient?.name || 'Venda Avulsa',
             quantity,
             totalValue,
+            totalCost,
+            profit,
             paymentMethod,
             brand: selectedProduct.brand,
-            status, // 'entregue'
+            status, 
             date: new Date().toISOString(),
             createdAt: serverTimestamp(),
             updatedAt: serverTimestamp()
@@ -167,6 +171,8 @@ export default function Sales() {
             type: 'entry',
             brand: selectedProduct.brand,
             value: totalValue,
+            cost: totalCost,
+            profit: profit,
             description: `Venda: ${selectedProduct.name} x${quantity}`,
             date: new Date().toISOString(),
             createdAt: serverTimestamp()
