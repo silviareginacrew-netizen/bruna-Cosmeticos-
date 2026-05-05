@@ -151,92 +151,98 @@ export default function Clients() {
   );
 
   return (
-    <div className="space-y-8 pb-10">
-      <header className="flex flex-col gap-6">
-        <div className="flex items-center justify-between">
-          <div>
-            <h1 className="text-4xl font-display font-semibold text-pink-gradient mb-1">Clientes</h1>
-            <p className="text-white/40 text-sm italic font-light tracking-wide italic">Sua rede de influência.</p>
-          </div>
-          <button 
-            onClick={() => openModal()} 
-            className="w-14 h-14 bg-premium-pink text-white rounded-full shadow-[0_10px_30px_rgba(212,175,55,0.3)] flex items-center justify-center hover:scale-110 active:scale-95 transition-all border-2 border-white/20"
-          >
-            <Plus className="w-8 h-8 stroke-[3]" />
-          </button>
+    <div className="space-y-8 pb-24">
+      <header className="flex items-center justify-between">
+        <div>
+          <h1 className="text-3xl font-display font-medium text-white italic">Clientes</h1>
+          <p className="text-white/20 text-[10px] uppercase font-black tracking-[0.3em] mt-1">Gestão de Relacionamento</p>
         </div>
+        <motion.button 
+          whileHover={{ scale: 1.05 }}
+          whileTap={{ scale: 0.95 }}
+          onClick={() => openModal()} 
+          className="w-14 h-14 bg-premium-pink text-white rounded-full flex items-center justify-center shadow-xl shadow-premium-pink/20"
+        >
+          <Plus className="w-6 h-6" />
+        </motion.button>
       </header>
 
-      <div className="relative">
-        <Search className="absolute left-4 top-1/2 -translate-y-1/2 w-5 h-5 text-white/20" />
+      <div className="relative group">
+        <Search className="absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4 text-white/10 group-focus-within:text-premium-pink transition-colors" />
         <input 
           type="text" 
-          placeholder="Nome ou telefone..."
-          className="input-premium pl-12 h-14 bg-dark-surface"
+          placeholder="Buscar no mailing..."
+          className="input-premium pl-12"
           value={search}
           onChange={(e) => setSearch(e.target.value)}
         />
       </div>
 
       {loading ? (
-        <div className="flex flex-col items-center justify-center p-20 gap-4">
-          <Loader2 className="w-10 h-10 animate-spin text-premium-pink" />
-          <p className="text-[10px] uppercase font-black tracking-[0.3em] text-white/20">Carregando clientes...</p>
+        <div className="flex flex-col items-center justify-center py-32 gap-6">
+          <div className="w-12 h-12 border-2 border-premium-pink/10 border-t-premium-pink rounded-full animate-spin" />
+          <p className="text-[10px] text-white/10 uppercase font-black tracking-[0.4em]">Sincronizando contatos</p>
         </div>
       ) : (
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+        <div className="grid grid-cols-1 gap-6">
           {filteredClients.length === 0 ? (
-            <div className="col-span-full py-20 text-center flex flex-col items-center gap-4">
-              <Users className="w-12 h-12 text-white/5" />
-              <p className="text-white/20 font-display text-xl uppercase tracking-widest italic">Acervo vazio</p>
+            <div className="py-24 text-center flex flex-col items-center gap-6 bg-white/[0.01] border border-dashed border-white/5 rounded-[2rem]">
+              <Users className="w-16 h-16 text-white/[0.02]" />
+              <p className="text-white/10 font-black tracking-widest uppercase text-[10px]">Nenhum cliente localizado</p>
             </div>
           ) : (
-            filteredClients.map((c) => (
+            filteredClients.map((c, idx) => (
               <motion.div 
-                layout
+                initial={{ opacity: 0, y: 10 }}
+                animate={{ opacity: 1, y: 0 }}
+                transition={{ delay: idx * 0.05 }}
                 key={c.id} 
-                className="card-premium group relative border-white/5 hover:border-premium-pink/40 transition-all duration-500 flex flex-col overflow-hidden"
+                className="bg-white/[0.03] border border-white/5 rounded-[2rem] p-6 space-y-6 group hover:translate-y-[-4px] transition-all duration-500"
               >
-                <div className="flex justify-between items-start mb-6">
-                  <div className="w-16 h-16 rounded-2xl bg-gradient-to-br from-premium-pink/20 to-transparent flex items-center justify-center text-premium-pink font-display font-bold text-3xl border border-premium-pink/10 shadow-lg">
-                    {c.name.charAt(0)}
+                <div className="flex justify-between items-start">
+                  <div className="flex items-center gap-5">
+                    <div className="w-16 h-16 rounded-[1.5rem] bg-gradient-to-br from-premium-pink/20 to-transparent flex items-center justify-center text-premium-pink font-display font-bold text-3xl border border-premium-pink/10 shadow-lg">
+                      {c.name.charAt(0)}
+                    </div>
+                    <div className="space-y-1">
+                      <h3 className="font-display text-2xl font-medium text-white italic group-hover:text-premium-pink transition-colors">{c.name}</h3>
+                      <div className="flex items-center gap-3">
+                        <span className="flex items-center gap-1.5 text-[10px] font-black uppercase text-white/20 tracking-widest">
+                          <Phone className="w-3 h-3 text-premium-pink/40" /> {c.phone || 'Sem contato'}
+                        </span>
+                      </div>
+                    </div>
                   </div>
                   <div className="flex gap-2">
-                    <button onClick={() => openModal(c)} className="w-10 h-10 flex items-center justify-center bg-white/5 text-white/40 border border-white/5 rounded-xl hover:bg-premium-pink hover:text-black transition-all">
+                    <button onClick={() => openModal(c)} className="w-10 h-10 flex items-center justify-center bg-white/5 text-white/20 hover:text-white rounded-xl transition-all">
                       <Edit2 className="w-4 h-4" />
                     </button>
-                    <button onClick={() => handleDelete(c.id)} className="w-10 h-10 flex items-center justify-center bg-red-400/5 text-red-400 border border-red-400/5 rounded-xl hover:bg-red-400/20 transition-all">
+                    <button onClick={() => handleDelete(c.id)} className="w-10 h-10 flex items-center justify-center bg-white/5 text-white/20 hover:text-red-500 rounded-xl transition-all">
                       <Trash2 className="w-4 h-4" />
                     </button>
                   </div>
                 </div>
 
-                <h3 className="font-display text-2xl text-white group-hover:text-premium-pink transition-colors mb-4">{c.name}</h3>
-
-                <div className="space-y-3 flex-1">
-                  <div className="flex items-center gap-3 text-sm text-white/30 group-hover:text-white/60 transition-colors">
-                    <Phone className="w-4 h-4 text-premium-pink/40" />
-                    <span className="font-medium tracking-wide">{c.phone || 'Sem telefone'}</span>
-                  </div>
-                  <div className="flex items-center gap-3 text-sm text-white/30 group-hover:text-white/60 transition-colors">
-                    <MapPin className="w-4 h-4 text-premium-pink/40" />
-                    <span className="line-clamp-1 italic">{c.address || 'Sem endereço'}</span>
-                  </div>
+                <div className="bg-white/[0.02] p-5 rounded-2xl border border-white/5 flex items-center gap-3">
+                  <MapPin className="w-4 h-4 text-white/10 shrink-0" />
+                  <p className="text-xs text-white/40 italic truncate">{c.address || 'Residência não cadastrada'}</p>
                 </div>
 
-                <div className="mt-8 pt-6 border-t border-white/5 flex items-center justify-between">
+                <div className="pt-4 border-t border-white/5 flex items-center justify-between">
                   <div>
-                    <span className="text-[9px] uppercase tracking-widest text-white/20 block mb-1">Dívida Ativa</span>
-                    <p className={cn("font-display text-xl", (c.totalDebt || 0) > 0 ? "text-red-400" : "text-green-400")}>
-                      R$ {(c.totalDebt || 0).toLocaleString('pt-BR', { minimumFractionDigits: 2 })}
+                    <span className="text-[9px] uppercase tracking-widest text-white/20 block mb-1 font-black">Pendência Financeira</span>
+                    <p className={cn("text-xl font-bold tracking-tighter", (c.totalDebt || 0) > 0 ? "text-red-500" : "text-green-500")}>
+                      {new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(c.totalDebt || 0)}
                     </p>
                   </div>
-                  <button 
+                  <motion.button 
+                    whileHover={{ scale: 1.05 }}
+                    whileTap={{ scale: 0.95 }}
                     onClick={() => handleWhatsApp(c.phone)}
-                    className="w-14 h-14 bg-green-500/10 text-green-500 border border-green-500/10 rounded-2xl flex items-center justify-center hover:bg-green-500 hover:text-black transition-all shadow-xl"
+                    className="w-14 h-14 bg-green-500/10 text-green-500 border border-green-500/10 rounded-[1.2rem] flex items-center justify-center hover:bg-green-500 hover:text-black transition-all shadow-xl shadow-green-500/10"
                   >
                     <MessageCircle className="w-7 h-7" />
-                  </button>
+                  </motion.button>
                 </div>
               </motion.div>
             ))
@@ -244,77 +250,83 @@ export default function Clients() {
         </div>
       )}
 
-      {/* Modal */}
+      {/* Modern Modal Design */}
       <AnimatePresence>
         {isModalOpen && (
-          <div className="fixed inset-0 z-[60] flex items-center justify-center p-4">
+          <div className="fixed inset-0 z-[100] flex items-center justify-center p-6">
             <motion.div 
               initial={{ opacity: 0 }}
               animate={{ opacity: 1 }}
               exit={{ opacity: 0 }}
               onClick={closeModal}
-              className="absolute inset-0 bg-black/80 backdrop-blur-sm"
+              className="absolute inset-0 bg-dark-bg/95 backdrop-blur-2xl"
             />
             <motion.div 
-              initial={{ scale: 0.9, opacity: 0, y: 20 }}
-              animate={{ scale: 1, opacity: 1, y: 0 }}
-              exit={{ scale: 0.9, opacity: 0, y: 20 }}
-              className="bg-dark-surface w-full max-w-lg rounded-3xl p-6 shadow-2xl relative border border-white/10"
+              initial={{ y: 50, opacity: 0, scale: 0.95 }}
+              animate={{ y: 0, opacity: 1, scale: 1 }}
+              exit={{ y: 50, opacity: 0, scale: 0.95 }}
+              className="bg-dark-surface w-full max-w-lg rounded-[2.5rem] p-8 shadow-2xl relative border border-white/5 max-h-[90vh] overflow-y-auto no-scrollbar"
             >
-              <button onClick={closeModal} className="absolute top-6 right-6 text-white/40 hover:text-white">
+              <button onClick={closeModal} className="absolute top-8 right-8 text-white/20 hover:text-white transition-all">
                 <X className="w-6 h-6" />
               </button>
 
-              <h2 className="text-2xl font-semibold mb-6 flex items-center gap-2 text-gold-gradient">
-                {editingClient ? <Edit2 className="w-6 h-6" /> : <Plus className="w-6 h-6" />}
-                {editingClient ? 'Editar Cliente' : 'Novo Cliente'}
-              </h2>
+              <div className="mb-10">
+                <h2 className="text-3xl font-display font-medium text-white italic">
+                  {editingClient ? 'Ajustar' : 'Novo'} Perfil
+                </h2>
+                <p className="text-[9px] uppercase font-black tracking-widest text-premium-pink mt-1">Excelência no Atendimento</p>
+              </div>
 
-              <form onSubmit={handleSubmit} className="space-y-4">
-                <div>
-                  <label className="text-xs text-white/60 mb-2 block">Nome</label>
+              <form onSubmit={handleSubmit} className="space-y-6">
+                <div className="space-y-2">
+                  <label className="text-[9px] text-white/20 uppercase font-black tracking-widest ml-1">Nome Completo</label>
                   <input 
                     type="text" 
                     className="input-premium" 
+                    placeholder="Identificação da Cliente"
                     required 
                     value={formData.name}
                     onChange={(e) => setFormData({...formData, name: e.target.value})}
                   />
                 </div>
 
-                <div>
-                  <label className="text-xs text-white/60 mb-2 block">Telefone (WhatsApp)</label>
+                <div className="space-y-2">
+                  <label className="text-[9px] text-white/20 uppercase font-black tracking-widest ml-1">Contato Concierge (WhatsApp)</label>
                   <input 
                     type="text" 
                     className="input-premium" 
                     placeholder="(00) 00000-0000"
+                    required
                     value={formData.phone}
                     onChange={(e) => setFormData({...formData, phone: e.target.value})}
                   />
                 </div>
 
-                <div>
-                  <label className="text-xs text-white/60 mb-2 block">Endereço</label>
+                <div className="space-y-2">
+                  <label className="text-[9px] text-white/20 uppercase font-black tracking-widest ml-1">Localização</label>
                   <input 
                     type="text" 
                     className="input-premium" 
+                    placeholder="Endereço de Entrega"
                     value={formData.address}
                     onChange={(e) => setFormData({...formData, address: e.target.value})}
                   />
                 </div>
 
-                <div>
-                  <label className="text-xs text-white/60 mb-2 block">Observações</label>
+                <div className="space-y-2">
+                  <label className="text-[9px] text-white/20 uppercase font-black tracking-widest ml-1">Observações Privadas</label>
                   <textarea 
-                    className="input-premium min-h-[100px] resize-none" 
+                    className="input-premium min-h-[120px] resize-none pt-4" 
+                    placeholder="Preferências, datas especiais..."
                     value={formData.observations}
                     onChange={(e) => setFormData({...formData, observations: e.target.value})}
                   />
                 </div>
 
                 <div className="pt-4">
-                  <button type="submit" disabled={isSubmitting} className="btn-premium w-full flex items-center justify-center gap-2">
-                    {isSubmitting ? <Loader2 className="w-5 h-5 animate-spin" /> : (editingClient ? 'Salvar Alterações' : 'Cadastrar Cliente')}
+                  <button type="submit" disabled={isSubmitting} className="btn-premium w-full !py-6 shadow-2xl shadow-premium-pink/20">
+                    {isSubmitting ? <Loader2 className="w-5 h-5 animate-spin" /> : (editingClient ? 'Salvar Perfil' : 'Integrar à Base Elite')}
                   </button>
                 </div>
               </form>

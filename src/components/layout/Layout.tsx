@@ -18,67 +18,85 @@ export default function Layout() {
   const location = useLocation();
 
   return (
-    <div className="min-h-screen bg-black flex flex-col md:flex-row pb-20 md:pb-0">
+    <div className="min-h-screen bg-dark-bg flex flex-col md:flex-row pb-24 md:pb-0">
       {/* Desktop Sidebar */}
-      <aside className="hidden md:flex flex-col w-64 border-r border-white/10 bg-dark-surface p-6 sticky top-0 h-screen">
-        <Logo size="sm" className="mb-12" />
+      <aside className="hidden md:flex flex-col w-64 border-r border-white/5 bg-dark-surface p-8 sticky top-0 h-screen">
+        <Logo size="sm" className="mb-12 !items-start" />
         
-        <nav className="flex-1 space-y-2">
+        <nav className="flex-1 space-y-3">
           {NavItems.map((item) => (
             <NavLink
               key={item.path}
               to={item.path}
               className={({ isActive }) => cn(
-                "flex items-center gap-3 px-4 py-3 rounded-xl transition-all duration-300 font-display uppercase tracking-widest text-[10px]",
+                "flex items-center gap-4 px-5 py-4 rounded-2xl transition-all duration-500 font-bold uppercase tracking-[0.2em] text-[9px] relative group",
                 isActive 
-                  ? "bg-premium-pink text-black font-black shadow-lg shadow-premium-pink/20" 
-                  : "text-white/40 hover:text-white hover:bg-white/5"
+                  ? "bg-premium-pink text-white shadow-xl shadow-premium-pink/20" 
+                  : "text-white/30 hover:text-white/60 hover:bg-white/[0.03]"
               )}
             >
-              <item.icon className="w-4 h-4" />
+              <item.icon className={cn("w-4 h-4 transition-transform duration-500", "group-hover:scale-110")} />
               <span>{item.label}</span>
+              {location.pathname === item.path && (
+                <motion.div 
+                  layoutId="sidebar-active"
+                  className="absolute left-0 w-1 h-6 bg-white rounded-r-full"
+                />
+              )}
             </NavLink>
           ))}
         </nav>
 
         <button 
           onClick={() => auth.signOut()}
-          className="mt-auto flex items-center gap-3 px-4 py-3 rounded-xl text-red-500 hover:bg-red-500/10 transition-all font-medium"
+          className="mt-auto flex items-center gap-4 px-5 py-4 rounded-2xl text-red-500/50 hover:text-red-500 hover:bg-red-500/5 transition-all text-[9px] font-black uppercase tracking-widest"
         >
-          <LogOut className="w-5 h-5" />
-          <span>Sair</span>
+          <LogOut className="w-4 h-4" />
+          <span>Sair do Sistema</span>
         </button>
       </aside>
 
       {/* Main Content */}
-      <main className="flex-1 overflow-x-hidden">
+      <main className="flex-1 overflow-x-hidden relative">
+        <div className="absolute top-0 right-0 w-96 h-96 bg-premium-pink/5 blur-[120px] rounded-full -z-10 pointer-events-none" />
+        <div className="absolute bottom-0 left-0 w-64 h-64 bg-premium-gold/5 blur-[100px] rounded-full -z-10 pointer-events-none" />
+        
         <motion.div
           key={location.pathname}
-          initial={{ opacity: 0, y: 20 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ duration: 0.4 }}
-          className="p-4 md:p-10"
+          initial={{ opacity: 0, scale: 0.98 }}
+          animate={{ opacity: 1, scale: 1 }}
+          transition={{ duration: 0.5, ease: "easeOut" }}
+          className="p-6 md:p-12 max-w-7xl mx-auto"
         >
           <Outlet />
         </motion.div>
       </main>
 
-      {/* Mobile Bottom Nav */}
-      <nav className="md:hidden fixed bottom-0 left-0 right-0 h-20 bg-dark-surface/90 backdrop-blur-xl border-t border-white/5 flex items-center justify-around px-2 z-50">
+      {/* Mobile Bottom Nav - Premium Design */}
+      <nav className="md:hidden fixed bottom-6 left-6 right-6 h-20 bg-dark-surface/80 backdrop-blur-2xl border border-white/5 flex items-center justify-around px-4 z-50 rounded-[2.5rem] shadow-[0_20px_50px_rgba(0,0,0,0.5)]">
         {NavItems.map((item) => (
           <NavLink
             key={item.path}
             to={item.path}
             className={({ isActive }) => cn(
-              "flex flex-col items-center justify-center gap-1.5 flex-1 transition-all",
+              "flex flex-col items-center justify-center gap-2 flex-1 transition-all relative py-2",
               isActive ? "text-premium-pink" : "text-white/20"
             )}
           >
             {({ isActive }) => (
               <>
-                <item.icon className={cn("w-5 h-5 transition-all", isActive && "scale-110")} />
-                <span className="text-[8px] uppercase font-black tracking-widest">{item.label}</span>
-                {isActive && <motion.div layoutId="nav-glow" className="w-1 h-1 bg-premium-pink rounded-full shadow-[0_0_8px_rgba(255,182,193,0.8)]" />}
+                <div className={cn(
+                  "p-2.5 rounded-2xl transition-all duration-500",
+                  isActive ? "bg-premium-pink/10 shadow-inner shadow-premium-pink/20" : ""
+                )}>
+                  <item.icon className={cn("w-5 h-5 transition-all text-current", isActive && "scale-110")} />
+                </div>
+                {isActive && (
+                  <motion.div 
+                    layoutId="nav-glow-mobile" 
+                    className="absolute bottom-1 w-1 h-1 bg-premium-pink rounded-full shadow-[0_0_12px_#E91E63]" 
+                  />
+                )}
               </>
             )}
           </NavLink>

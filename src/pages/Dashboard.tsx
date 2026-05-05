@@ -81,8 +81,6 @@ export default function Dashboard() {
     pendingOrders: 0
   });
 
-  const [businessName, setBusinessName] = useState('Bruna Cosméticos');
-
   useEffect(() => {
     if (!auth.currentUser) return;
     const userId = auth.currentUser.uid;
@@ -142,131 +140,189 @@ export default function Dashboard() {
   }, [auth.currentUser]);
 
   if (loading) {
-     return (
-        <div className="flex flex-col items-center justify-center p-20 gap-4 min-h-[60vh]">
-          <Loader2 className="w-10 h-10 animate-spin text-premium-pink" />
-          <p className="text-[10px] uppercase font-black tracking-[0.3em] text-white/20">Acessando sistema...</p>
-        </div>
-     );
+     return null; // Layout handles splash or we can show a minimal loader
   }
 
   const formatCurrency = (val: number) => 
     new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(val);
 
   return (
-    <div className="space-y-8 pb-20">
-      <header className="flex flex-col items-center justify-center text-center py-10 gap-6 border-b border-white/5 mb-10">
-        <Logo size="lg" className="mb-2" />
-        <div className="space-y-3">
-          <h1 className="text-5xl sm:text-6xl font-display font-medium text-white uppercase tracking-tighter italic">
-            <span className="text-pink-gradient">Bruna</span> Cosméticos
-          </h1>
-          <div className="flex items-center justify-center gap-4">
-            <div className="h-[1px] w-12 bg-premium-pink/20" />
-            <p className="text-white/20 text-[10px] uppercase font-black tracking-[0.4em]">Painel do Representante</p>
-            <div className="h-[1px] w-12 bg-premium-pink/20" />
-          </div>
+    <div className="space-y-12 pb-24">
+      {/* Header with Luxury Brand Identity */}
+      <header className="flex flex-col items-center justify-center text-center py-12 gap-8 relative">
+        <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-64 h-64 bg-premium-pink/10 blur-[100px] rounded-full pointer-events-none" />
+        
+        <Logo size="lg" className="mb-6" />
+        
+        <div className="space-y-4 relative z-10">
+          <motion.div
+            initial={{ opacity: 0, scale: 0.9 }}
+            animate={{ opacity: 1, scale: 1 }}
+            className="inline-flex items-center gap-2 px-4 py-1.5 rounded-full bg-white/5 border border-white/5 mb-2 backdrop-blur-md"
+          >
+            <Sparkles className="w-3.5 h-3.5 text-premium-pink" />
+            <span className="text-[10px] text-white/40 uppercase font-black tracking-[0.2em]">Painel de Controle Elite</span>
+          </motion.div>
+          
+          <motion.h1 
+            initial={{ opacity: 0, y: 20 }}
+            animate={{ opacity: 1, y: 0 }}
+            className="text-5xl sm:text-7xl font-display font-medium text-white tracking-tighter italic leading-none"
+          >
+            Olá, <span className="text-premium-pink">Bruna</span>
+          </motion.h1>
+          <p className="text-[10px] uppercase font-black tracking-[0.4em] text-white/20 mt-4">Sua visão executiva para hoje</p>
         </div>
       </header>
 
-      {/* Primary Metrics - Visual Focus */}
-      <div className="grid grid-cols-1 gap-4">
-        <div className="bg-gradient-to-br from-premium-pink to-pink-600 p-6 rounded-[2rem] shadow-xl shadow-pink-500/10">
-          <div className="flex justify-between items-start mb-6">
-            <div className="bg-white/20 p-3 rounded-2xl">
-              <TrendingUp className="w-6 h-6 text-white" />
-            </div>
-            <span className="text-[10px] uppercase font-black tracking-widest text-white/60">Vendas Hoje</span>
-          </div>
-          <p className="text-3xl font-bold text-white mb-1">{formatCurrency(metrics.todaySales)}</p>
-          <p className="text-white/60 text-xs font-medium">Mês: {formatCurrency(metrics.monthlySales)}</p>
-        </div>
-
-        <div className="grid grid-cols-2 gap-4">
-          <div className="bg-white/5 border border-white/10 p-5 rounded-[1.5rem]">
-            <div className="text-white/40 mb-2">
-              <DollarSign className="w-5 h-5 text-premium-pink" />
-            </div>
-            <p className="text-lg font-bold text-white">{formatCurrency(metrics.cashInHand)}</p>
-            <p className="text-[9px] uppercase tracking-widest text-white/40 font-bold">Saldo em Caixa</p>
-          </div>
-          <div className="bg-white/5 border border-white/10 p-5 rounded-[1.5rem]">
-            <div className="text-white/40 mb-2">
-              <Users className="w-5 h-5 text-red-400" />
-            </div>
-            <p className="text-lg font-bold text-white">{formatCurrency(metrics.pendingPayments)}</p>
-            <p className="text-[9px] uppercase tracking-widest text-white/40 font-bold">A Receber</p>
-          </div>
-        </div>
-      </div>
-
-      {/* Quick Actions */}
-      <div className="grid grid-cols-2 gap-4">
-        <button 
-          onClick={() => navigate('/vendas')}
-          className="flex flex-col items-center gap-3 p-6 bg-white/5 border border-white/10 rounded-[1.5rem] hover:bg-white/10 transition-all active:scale-95"
+      {/* Main Financial Cards - The "Caixa" Home section */}
+      <div className="grid grid-cols-1 gap-8">
+        <motion.div 
+          initial={{ opacity: 0, y: 20 }}
+          animate={{ opacity: 1, y: 0 }}
+          whileHover={{ scale: 1.01 }}
+          className="bg-premium-gradient p-10 rounded-[3rem] shadow-[0_40px_80px_-20px_rgba(233,30,99,0.4)] relative overflow-hidden group border border-white/10"
         >
-          <div className="w-12 h-12 bg-premium-pink/10 rounded-2xl flex items-center justify-center">
-            <ShoppingCart className="text-premium-pink w-6 h-6" />
-          </div>
-          <span className="text-xs font-bold text-white/80 uppercase tracking-widest">Nova Venda</span>
-        </button>
-        <button 
-          onClick={() => navigate('/estoque')}
-          className="flex flex-col items-center gap-3 p-6 bg-white/5 border border-white/10 rounded-[1.5rem] hover:bg-white/10 transition-all active:scale-95"
-        >
-          <div className="w-12 h-12 bg-white/10 rounded-2xl flex items-center justify-center">
-            <Package className="text-white/60 w-6 h-6" />
-          </div>
-          <span className="text-xs font-bold text-white/80 uppercase tracking-widest">Estoque</span>
-        </button>
-      </div>
-
-      {/* System Status / Alerts */}
-      <div className="space-y-4">
-        <h3 className="text-[10px] uppercase font-black tracking-[0.3em] text-white/30 px-2 italic">Atenção Necessária</h3>
-        
-        <div className="space-y-2">
-          {metrics.lowStock > 0 && (
-            <div className="flex items-center gap-4 p-4 bg-red-500/5 border border-red-500/10 rounded-2xl">
-              <AlertCircle className="text-red-400 w-5 h-5 shrink-0" />
-              <div className="flex-1">
-                <p className="text-sm font-bold text-white">{metrics.lowStock} itens críticos</p>
-                <p className="text-[10px] text-white/40 uppercase tracking-widest">Reposição de estoque necessária</p>
+          <div className="absolute top-0 right-0 w-80 h-80 bg-white/10 blur-[90px] rounded-full -mr-32 -mt-32 group-hover:scale-110 transition-transform duration-[2000ms]" />
+          <div className="absolute bottom-0 left-0 w-40 h-40 bg-black/20 blur-[50px] rounded-full -ml-20 -mb-20" />
+          
+          <div className="flex justify-between items-start mb-14 relative z-10">
+            <div className="bg-white/20 p-5 rounded-[1.5rem] backdrop-blur-xl border border-white/10 shadow-lg">
+              <TrendingUp className="w-8 h-8 text-white" />
+            </div>
+            <div className="text-right">
+              <p className="text-[10px] uppercase font-black tracking-[0.2em] text-white/60 mb-2 font-display italic">Faturamento do Dia</p>
+              <div className="inline-flex items-center gap-2 bg-black/20 px-3 py-1 rounded-lg backdrop-blur-md">
+                <Calendar className="w-3 h-3 text-white/40" />
+                <p className="text-white/60 text-[9px] font-black uppercase tracking-tighter">Mês: {formatCurrency(metrics.monthlySales)}</p>
               </div>
-              <button 
-                onClick={() => navigate('/estoque')}
-                className="p-2 text-red-100/50 hover:text-red-400"
-              >
-                <ArrowUpRight className="w-5 h-5" />
-              </button>
             </div>
-          )}
+          </div>
+          
+          <div className="relative z-10">
+            <p className="text-6xl font-bold text-white mb-3 tracking-tighter">{formatCurrency(metrics.todaySales)}</p>
+            <div className="flex items-center gap-3">
+              <div className="w-2.5 h-2.5 rounded-full bg-white animate-pulse shadow-[0_0_10px_white]" />
+              <p className="text-[10px] text-white/40 uppercase font-black tracking-[0.3em]">Monitoramento Real-time</p>
+            </div>
+          </div>
+        </motion.div>
 
-          {metrics.pendingOrders > 0 && (
-            <div className="flex items-center gap-4 p-4 bg-premium-pink/5 border border-premium-pink/10 rounded-2xl">
-              <ShoppingCart className="text-premium-pink w-5 h-5 shrink-0" />
-              <div className="flex-1">
-                <p className="text-sm font-bold text-white">{metrics.pendingOrders} pedidos pendentes</p>
-                <p className="text-[10px] text-white/40 uppercase tracking-widest">Aguardando entrega/pagamento</p>
-              </div>
-              <button 
-                onClick={() => navigate('/vendas')}
-                className="p-2 text-premium-pink/50 hover:text-premium-pink"
-              >
-                <ArrowUpRight className="w-5 h-5" />
-              </button>
+        <div className="grid grid-cols-2 gap-8">
+          <motion.div 
+            initial={{ opacity: 0, x: -20 }}
+            animate={{ opacity: 1, x: 0 }}
+            transition={{ delay: 0.1 }}
+            whileHover={{ y: -8 }} 
+            className="bg-white/[0.03] border border-white/5 p-8 rounded-[2.5rem] shadow-2xl space-y-6 group hover:border-premium-pink/20 transition-all duration-500"
+          >
+            <div className="w-12 h-12 bg-premium-pink/10 rounded-2xl flex items-center justify-center group-hover:bg-premium-pink/20 transition-colors">
+              <DollarSign className="w-6 h-6 text-premium-pink" />
             </div>
-          )}
+            <div>
+              <p className="text-2xl font-bold text-white mb-1 tracking-tight">{formatCurrency(metrics.cashInHand)}</p>
+              <p className="text-[10px] uppercase tracking-[0.2em] text-white/20 font-black">Em Disponibilidade</p>
+            </div>
+          </motion.div>
 
-          {metrics.lowStock === 0 && metrics.pendingOrders === 0 && (
-            <div className="p-8 text-center border border-dashed border-white/5 rounded-3xl">
-              <Check className="w-10 h-10 mx-auto mb-2 text-green-500/20" />
-              <p className="text-[10px] uppercase font-black tracking-widest text-white/10">Tudo em dia por aqui</p>
+          <motion.div 
+            initial={{ opacity: 0, x: 20 }}
+            animate={{ opacity: 1, x: 0 }}
+            transition={{ delay: 0.2 }}
+            whileHover={{ y: -8 }} 
+            className="bg-white/[0.03] border border-white/5 p-8 rounded-[2.5rem] shadow-2xl space-y-6 group hover:border-white/20 transition-all duration-500"
+          >
+            <div className="w-12 h-12 bg-white/5 rounded-2xl flex items-center justify-center group-hover:bg-white/10 transition-colors">
+              <Users className="w-6 h-6 text-white/40" />
             </div>
-          )}
+            <div>
+              <p className="text-2xl font-bold text-white mb-1 tracking-tight">{formatCurrency(metrics.pendingPayments)}</p>
+              <p className="text-[10px] uppercase tracking-[0.2em] text-white/20 font-black">Em Negociação</p>
+            </div>
+          </motion.div>
         </div>
       </div>
+
+      {/* Quick Actions - Floating Menu Style */}
+      <div className="space-y-8">
+        <h3 className="text-[10px] uppercase font-black tracking-[0.6em] text-white/10 text-center">Operações Estratégicas</h3>
+        <div className="grid grid-cols-2 gap-8">
+          <motion.button 
+            whileHover={{ scale: 1.05 }}
+            whileTap={{ scale: 0.95 }}
+            onClick={() => navigate('/vendas')}
+            className="flex flex-col items-center gap-5 p-10 bg-white/[0.02] border border-white/5 rounded-[3rem] hover:bg-white/[0.05] transition-all group"
+          >
+            <div className="w-16 h-16 bg-premium-pink/10 rounded-[1.8rem] flex items-center justify-center group-hover:rotate-12 transition-all duration-700">
+              <ShoppingCart className="text-premium-pink w-7 h-7" />
+            </div>
+            <span className="text-[10px] font-black text-white/40 group-hover:text-white uppercase tracking-[0.3em] transition-colors">Vender</span>
+          </motion.button>
+          
+          <motion.button 
+            whileHover={{ scale: 1.05 }}
+            whileTap={{ scale: 0.95 }}
+            onClick={() => navigate('/estoque')}
+            className="flex flex-col items-center gap-5 p-10 bg-white/[0.02] border border-white/5 rounded-[3rem] hover:bg-white/[0.05] transition-all group"
+          >
+            <div className="w-16 h-16 bg-white/5 rounded-[1.8rem] flex items-center justify-center group-hover:-rotate-12 transition-all duration-700">
+              <Package className="text-white/20 w-7 h-7 group-hover:text-white transition-colors" />
+            </div>
+            <span className="text-[10px] font-black text-white/40 group-hover:text-white uppercase tracking-[0.3em] transition-colors">Acervo</span>
+          </motion.button>
+        </div>
+      </div>
+
+      {/* Notifications / Priority Items */}
+      {(metrics.lowStock > 0 || metrics.pendingOrders > 0) && (
+        <div className="space-y-6">
+          <div className="flex items-center justify-between px-2">
+            <h3 className="text-[10px] uppercase font-black tracking-[0.5em] text-white/20 italic">Ações Pendentes</h3>
+            <div className="w-2 h-2 rounded-full bg-red-500 animate-ping" />
+          </div>
+          
+          <div className="space-y-4">
+            {metrics.lowStock > 0 && (
+              <motion.div 
+                initial={{ opacity: 0, x: -20 }}
+                animate={{ opacity: 1, x: 0 }}
+                className="flex items-center gap-5 p-6 bg-red-500/[0.02] border border-red-500/10 rounded-[2rem] group hover:bg-red-500/[0.05] transition-all"
+              >
+                <div className="w-12 h-12 bg-red-500/10 rounded-2xl flex items-center justify-center shrink-0">
+                  <AlertCircle className="text-red-400 w-6 h-6" />
+                </div>
+                <div className="flex-1">
+                  <p className="text-sm font-bold text-white mb-0.5">{metrics.lowStock} itens no limite</p>
+                  <p className="text-[9px] text-white/30 uppercase font-black tracking-widest">Reposição de estoque urgente</p>
+                </div>
+                <button onClick={() => navigate('/estoque')} className="p-3 rounded-xl bg-white/5 hover:bg-white/10 transition-all">
+                  <ArrowUpRight className="w-5 h-5 text-white/40" />
+                </button>
+              </motion.div>
+            )}
+
+            {metrics.pendingOrders > 0 && (
+              <motion.div 
+                initial={{ opacity: 0, x: -20 }}
+                animate={{ opacity: 1, x: 0 }}
+                transition={{ delay: 0.1 }}
+                className="flex items-center gap-5 p-6 bg-premium-gold/[0.02] border border-premium-gold/10 rounded-[2rem] group hover:bg-premium-gold/[0.05] transition-all"
+              >
+                <div className="w-12 h-12 bg-premium-gold/10 rounded-2xl flex items-center justify-center shrink-0">
+                  <ShoppingCart className="text-premium-gold w-6 h-6" />
+                </div>
+                <div className="flex-1">
+                  <p className="text-sm font-bold text-white mb-0.5">{metrics.pendingOrders} pedidos abertos</p>
+                  <p className="text-[9px] text-white/30 uppercase font-black tracking-widest">Verificar entregas e pagamentos</p>
+                </div>
+                <button onClick={() => navigate('/vendas')} className="p-3 rounded-xl bg-white/5 hover:bg-white/10 transition-all">
+                  <ArrowUpRight className="w-5 h-5 text-white/40" />
+                </button>
+              </motion.div>
+            )}
+          </div>
+        </div>
+      )}
     </div>
   );
 }

@@ -226,87 +226,96 @@ export default function Sales() {
     new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(val);
 
   return (
-    <div className="space-y-8 pb-10">
-      <header className="flex flex-col gap-6">
-        <div className="flex items-center justify-between">
-          <div>
-            <h1 className="text-4xl font-display font-semibold text-pink-gradient mb-1">Vendas</h1>
-            <p className="text-white/40 text-sm italic font-light tracking-wide italic">Registro de faturamento.</p>
-          </div>
-          <button 
-            onClick={() => setIsModalOpen(true)} 
-            className="w-14 h-14 bg-premium-pink text-white rounded-full shadow-[0_10px_30px_rgba(212,175,55,0.3)] flex items-center justify-center hover:scale-110 active:scale-95 transition-all border-2 border-white/20"
-          >
-            <Plus className="w-8 h-8 stroke-[3]" />
-          </button>
+    <div className="space-y-8 pb-24">
+      <header className="flex items-center justify-between">
+        <div>
+          <h1 className="text-3xl font-display font-medium text-white italic">Vendas</h1>
+          <p className="text-white/20 text-[10px] uppercase font-black tracking-[0.3em] mt-1">Gestão de Faturamento</p>
         </div>
+        <motion.button 
+          whileHover={{ scale: 1.05 }}
+          whileTap={{ scale: 0.95 }}
+          onClick={() => setIsModalOpen(true)} 
+          className="w-14 h-14 bg-premium-pink text-white rounded-full flex items-center justify-center shadow-xl shadow-premium-pink/20"
+        >
+          <Plus className="w-6 h-6" />
+        </motion.button>
       </header>
 
       {loading ? (
-        <div className="flex flex-col items-center justify-center p-20 gap-4">
-          <Loader2 className="w-10 h-10 animate-spin text-premium-pink" />
-          <p className="text-[10px] uppercase font-black tracking-[0.3em] text-white/20">Carregando vendas...</p>
+        <div className="flex flex-col items-center justify-center py-32 gap-6">
+          <div className="w-12 h-12 border-2 border-premium-pink/10 border-t-premium-pink rounded-full animate-spin" />
+          <p className="text-[10px] text-white/10 uppercase font-black tracking-[0.4em]">Sincronizando faturamento</p>
         </div>
       ) : (
         <div className="space-y-4">
           {sales.length === 0 ? (
-            <div className="py-20 text-center flex flex-col items-center gap-4">
-              <ShoppingCart className="w-12 h-12 text-white/5" />
-              <p className="text-white/20 font-display text-xl uppercase tracking-widest italic">Sem vendas registradas</p>
+            <div className="py-24 text-center flex flex-col items-center gap-6 bg-white/[0.01] border border-dashed border-white/5 rounded-[2rem]">
+              <ShoppingCart className="w-16 h-16 text-white/[0.02]" />
+              <p className="text-white/10 font-black tracking-widest uppercase text-[10px]">Nenhuma venda localizada</p>
             </div>
           ) : (
-            sales.sort((a,b) => new Date(b.date).getTime() - new Date(a.date).getTime()).map((sale) => (
+            sales.sort((a,b) => new Date(b.date).getTime() - new Date(a.date).getTime()).map((sale, idx) => (
               <motion.div 
+                initial={{ opacity: 0, y: 10 }}
+                animate={{ opacity: 1, y: 0 }}
+                transition={{ delay: idx * 0.05 }}
                 key={sale.id} 
-                className="card-premium group hover:border-premium-pink/20 transition-all duration-500 overflow-hidden relative"
+                className="bg-white/[0.03] border border-white/5 rounded-[2rem] p-6 space-y-6 group hover:translate-y-[-4px] transition-all duration-500"
               >
-                <div className="flex items-center gap-4 sm:gap-6">
-                  <div className="w-14 sm:w-16 h-14 sm:h-16 bg-white/[0.03] rounded-2xl flex items-center justify-center border border-white/5 group-hover:bg-premium-pink/5 transition-colors shrink-0">
-                    <Package className="w-6 sm:w-8 h-6 sm:h-8 text-white/20 group-hover:text-premium-pink transition-colors" />
+                <div className="flex items-center gap-6">
+                  <div className="w-16 h-16 bg-white/5 border border-white/5 rounded-2xl flex items-center justify-center group-hover:bg-premium-pink/10 transition-all duration-500">
+                    <Package className="w-8 h-8 text-white/20 group-hover:text-premium-pink transition-colors" />
                   </div>
                   
                   <div className="flex-1 min-w-0">
-                    <div className="flex justify-between items-start mb-1 gap-2">
-                      <h3 className="font-display text-lg sm:text-xl text-white truncate italic">{sale.productName}</h3>
-                      <div className="text-right shrink-0">
-                        <p className="font-display text-xl text-premium-pink">R$ {sale.totalValue.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}</p>
+                    <div className="flex justify-between items-start mb-2">
+                      <div className="space-y-1">
+                        <h3 className="font-display text-xl font-medium text-white italic group-hover:text-premium-pink transition-colors truncate">{sale.productName}</h3>
+                        <p className="text-[10px] text-white/20 uppercase font-black tracking-widest flex items-center gap-2">
+                          <User className="w-3 h-3" /> {sale.clientName || 'Venda Avulsa'}
+                        </p>
+                      </div>
+                      <div className="text-right">
+                        <p className="text-xl font-bold text-premium-pink tracking-tighter">{formatCurrency(sale.totalValue)}</p>
                         <span className={cn(
-                          "text-[8px] uppercase tracking-tighter px-2 py-0.5 rounded-full font-bold",
-                          sale.status === 'entregue' ? "bg-green-500/20 text-green-400" : 
-                          sale.status === 'pendente' ? "bg-premium-pink/20 text-premium-pink" : 
-                          "bg-red-500/20 text-red-400"
+                          "text-[8px] uppercase tracking-widest px-2 py-1 rounded font-black",
+                          sale.status === 'entregue' ? "bg-green-500/10 text-green-500" : 
+                          sale.status === 'pendente' ? "bg-premium-pink/10 text-premium-pink" : 
+                          "bg-red-500/10 text-red-500"
                         )}>
                           {sale.status || 'entregue'}
                         </span>
                       </div>
                     </div>
                     
-                    <div className="flex items-center gap-3 sm:gap-4 text-[8px] sm:text-[10px] uppercase tracking-widest text-white/30 font-bold">
-                      <span className="flex items-center gap-1 truncate max-w-[120px]"><User className="w-3 h-3" /> {sale.clientName || 'Consumidor'}</span>
-                      <span className="h-3 w-px bg-white/10" />
-                      <span className="flex items-center gap-1 font-display tracking-normal"><Calendar className="w-3 h-3" /> {new Date(sale.date).toLocaleDateString('pt-BR', { day: '2-digit', month: '2-digit' })}</span>
+                    <div className="flex items-center gap-4 pt-4 border-t border-white/5">
+                      <div className="flex gap-2">
+                        <button 
+                          onClick={() => openEditModal(sale)}
+                          className="w-10 h-10 flex items-center justify-center bg-white/5 text-white/20 hover:text-white rounded-xl transition-all"
+                        >
+                          <Edit2 className="w-4 h-4" />
+                        </button>
+                        <button 
+                          onClick={() => generateReceipt(sale)}
+                          className="w-10 h-10 flex items-center justify-center bg-white/5 text-white/20 hover:text-white rounded-xl transition-all"
+                        >
+                          <Download className="w-4 h-4" />
+                        </button>
+                        <button 
+                          onClick={() => handleDelete(sale)}
+                          className="w-10 h-10 flex items-center justify-center bg-white/5 text-white/20 hover:text-red-500 rounded-xl transition-all"
+                        >
+                          <Trash2 className="w-4 h-4" />
+                        </button>
+                      </div>
+                      <div className="flex-1 text-right">
+                        <p className="text-[9px] text-white/10 uppercase font-black tracking-widest italic font-display">
+                          {new Date(sale.date).toLocaleDateString('pt-BR')} • {sale.paymentMethod}
+                        </p>
+                      </div>
                     </div>
-                  </div>
-
-                  <div className="flex gap-2">
-                    <button 
-                      onClick={() => openEditModal(sale)}
-                      className="w-10 sm:w-12 h-10 sm:h-12 flex items-center justify-center bg-white/5 text-white/40 border border-white/5 rounded-xl hover:bg-premium-pink hover:text-black transition-all"
-                    >
-                      <Edit2 className="w-4 sm:w-5 h-4 sm:h-5" />
-                    </button>
-                    <button 
-                      onClick={() => generateReceipt(sale)}
-                      className="w-10 sm:w-12 h-10 sm:h-12 flex items-center justify-center bg-white/5 text-white/40 border border-white/5 rounded-xl hover:bg-premium-pink hover:text-black transition-all"
-                    >
-                      <Download className="w-4 sm:w-5 h-4 sm:h-5" />
-                    </button>
-                    <button 
-                      onClick={() => handleDelete(sale)}
-                      className="w-10 sm:w-12 h-10 sm:h-12 flex items-center justify-center bg-red-500/5 text-red-500 border border-red-500/10 rounded-xl hover:bg-red-500/20 transition-all"
-                    >
-                      <Trash2 className="w-4 sm:w-5 h-4 sm:h-5" />
-                    </button>
                   </div>
                 </div>
               </motion.div>
@@ -315,39 +324,40 @@ export default function Sales() {
         </div>
       )}
 
-      {/* Modal Nova Venda */}
+      {/* Premium Sale Modal */}
       <AnimatePresence>
         {isModalOpen && (
-          <div className="fixed inset-0 z-[60] flex items-center justify-center p-4">
+          <div className="fixed inset-0 z-[100] flex items-center justify-center p-6">
             <motion.div 
               initial={{ opacity: 0 }}
               animate={{ opacity: 1 }}
               exit={{ opacity: 0 }}
               onClick={() => setIsModalOpen(false)}
-              className="absolute inset-0 bg-black/80 backdrop-blur-sm"
+              className="absolute inset-0 bg-dark-bg/95 backdrop-blur-2xl"
             />
             <motion.div 
-              initial={{ scale: 0.9, opacity: 0, y: 20 }}
-              animate={{ scale: 1, opacity: 1, y: 0 }}
-              exit={{ scale: 0.9, opacity: 0, y: 20 }}
-              className="bg-dark-surface w-full max-w-xl rounded-3xl p-6 shadow-2xl relative border border-white/10 max-h-[90vh] overflow-y-auto"
+              initial={{ y: 50, opacity: 0, scale: 0.95 }}
+              animate={{ y: 0, opacity: 1, scale: 1 }}
+              exit={{ y: 50, opacity: 0, scale: 0.95 }}
+              className="bg-dark-surface w-full max-w-xl rounded-[3rem] p-8 shadow-2xl relative border border-white/5 max-h-[90vh] overflow-y-auto no-scrollbar"
             >
               <button 
                 onClick={() => setIsModalOpen(false)}
-                className="absolute top-6 right-6 text-white/40 hover:text-white"
+                className="absolute top-8 right-8 text-white/20 hover:text-white transition-all"
               >
                 <X className="w-6 h-6" />
               </button>
 
-              <h2 className="text-2xl font-semibold mb-6 flex items-center gap-2 text-pink-gradient">
-                <ShoppingCart className="w-6 h-6" />
-                {editingSale ? 'Editar Venda' : 'Registrar Venda'}
-              </h2>
+              <div className="mb-10">
+                <h2 className="text-3xl font-display font-medium text-white italic">
+                  {editingSale ? 'Ajustar' : 'Nova'} Venda
+                </h2>
+                <p className="text-[9px] uppercase font-black tracking-widest text-premium-pink mt-1">Concretize um Momento de Luxo</p>
+              </div>
 
-              <form onSubmit={handleSale} className="space-y-6">
-                {/* Product Selection */}
-                <div>
-                  <label className="text-xs text-white/60 mb-2 block uppercase tracking-widest">Produto</label>
+              <form onSubmit={handleSale} className="space-y-8">
+                <div className="space-y-3">
+                  <label className="text-[9px] text-white/20 uppercase font-black tracking-widest ml-1">Seleção de Produto</label>
                   <div className="relative">
                     <select 
                       className="input-premium appearance-none"
@@ -355,91 +365,102 @@ export default function Sales() {
                       value={selectedProduct?.id || ''}
                       onChange={(e) => setSelectedProduct(products.find(p => p.id === e.target.value) || null)}
                     >
-                      <option value="">Selecione um produto</option>
+                      <option value="">Buscar no acervo...</option>
                       {products.map(p => (
                         <option key={p.id} value={p.id} disabled={p.quantity <= 0}>
-                          {p.name} - R$ {p.sellPrice.toLocaleString('pt-BR')} ({p.brand} - {p.quantity} em estoque)
+                          {p.name} - R$ {p.sellPrice.toLocaleString('pt-BR')} ({p.brand} - {p.quantity} un)
                         </option>
                       ))}
                     </select>
-                    <Search className="absolute right-4 top-1/2 -translate-y-1/2 w-4 h-4 text-white/20 pointer-events-none" />
+                    <div className="absolute right-4 top-1/2 -translate-y-1/2 pointer-events-none text-white/10">
+                      <Search className="w-4 h-4" />
+                    </div>
                   </div>
                 </div>
 
-                {/* Client Selection */}
-                <div>
-                  <label className="text-xs text-white/60 mb-2 block uppercase tracking-widest">Cliente (Opcional)</label>
+                <div className="space-y-3">
+                  <label className="text-[9px] text-white/20 uppercase font-black tracking-widest ml-1">Destinatário</label>
                   <select 
-                    className="input-premium"
+                    className="input-premium appearance-none"
                     value={selectedClient?.id || ''}
                     onChange={(e) => setSelectedClient(clients.find(c => c.id === e.target.value) || null)}
                   >
-                    <option value="">Venda Avulsa</option>
+                    <option value="">Consumidor Final (Venda Avulsa)</option>
                     {clients.map(c => (
                       <option key={c.id} value={c.id}>{c.name}</option>
                     ))}
                   </select>
                 </div>
 
-                <div className="grid grid-cols-2 gap-4">
-                  {/* Quantity */}
-                  <div>
-                    <label className="text-xs text-white/60 mb-2 block uppercase tracking-widest">Quantidade</label>
-                    <div className="flex items-center gap-3">
+                <div className="grid grid-cols-2 gap-6">
+                  <div className="space-y-3">
+                    <label className="text-[9px] text-white/20 uppercase font-black tracking-widest ml-1">Volume</label>
+                    <div className="flex items-center justify-between input-premium !py-2">
                       <button 
                         type="button"
                         onClick={() => setQuantity(Math.max(1, quantity - 1))}
-                        className="p-2 bg-white/5 rounded-lg hover:bg-white/10"
+                        className="w-10 h-10 flex items-center justify-center bg-white/5 rounded-xl hover:bg-white/10 text-white/40"
                       >
-                        <MinusCircle className="w-5 h-5 text-gold" />
+                        <MinusCircle className="w-5 h-5" />
                       </button>
-                      <span className="text-xl font-bold w-8 text-center">{quantity}</span>
+                      <span className="text-xl font-bold text-white">{quantity}</span>
                       <button 
                         type="button"
                         onClick={() => setQuantity(Math.min(selectedProduct?.quantity || 100, quantity + 1))}
-                        className="p-2 bg-white/5 rounded-lg hover:bg-white/10"
+                        className="w-10 h-10 flex items-center justify-center bg-premium-pink/10 rounded-xl hover:bg-premium-pink/20 text-premium-pink"
                       >
-                        <PlusCircle className="w-5 h-5 text-gold" />
+                        <PlusCircle className="w-5 h-5" />
                       </button>
                     </div>
                   </div>
 
-                  {/* Payment Method */}
-                  <div>
-                    <label className="text-xs text-white/60 mb-2 block uppercase tracking-widest">Pagamento</label>
+                  <div className="space-y-3">
+                    <label className="text-[9px] text-white/20 uppercase font-black tracking-widest ml-1">Forma de Recebimento</label>
                     <select 
-                      className="input-premium"
+                      className="input-premium appearance-none"
                       value={paymentMethod}
                       onChange={(e) => setPaymentMethod(e.target.value)}
                     >
-                      <option value="Dinheiro">Dinheiro</option>
-                      <option value="Cartão de Crédito">Cartão de Crédito</option>
-                      <option value="Cartão de Débito">Cartão de Débito</option>
-                      <option value="Pix">Pix</option>
-                      <option value="Fiado / Pendente">Fiado / Pendente</option>
+                      <option value="Dinheiro">Espécie</option>
+                      <option value="Cartão de Crédito">Crédito</option>
+                      <option value="Cartão de Débito">Débito</option>
+                      <option value="Pix">TED / Pix</option>
+                      <option value="Fiado / Pendente">Pendente / Fiado</option>
                     </select>
                   </div>
                 </div>
 
-                {/* Total Summary */}
                 {selectedProduct && (
-                  <div className="p-4 bg-gold/5 rounded-2xl border border-gold/10 flex justify-between items-center">
+                  <motion.div 
+                    initial={{ opacity: 0, scale: 0.95 }}
+                    animate={{ opacity: 1, scale: 1 }}
+                    className="p-8 bg-premium-pink/[0.02] border border-premium-pink/10 rounded-[2rem] flex justify-between items-center"
+                  >
                     <div>
-                      <p className="text-[10px] uppercase text-gold/60 font-bold">Total a receber</p>
-                      <p className="text-2xl font-bold text-gold">
+                      <p className="text-[10px] uppercase text-premium-pink font-black tracking-[0.2em] mb-1">Total Consolidado</p>
+                      <p className="text-4xl font-bold text-white tracking-tighter">
                         {formatCurrency(selectedProduct.sellPrice * quantity)}
                       </p>
                     </div>
-                    <CheckCircle2 className="w-8 h-8 text-gold mt-1" />
-                  </div>
+                    <div className="w-16 h-16 bg-premium-pink/10 rounded-full flex items-center justify-center">
+                      <CheckCircle2 className="w-8 h-8 text-premium-pink" />
+                    </div>
+                  </motion.div>
                 )}
 
                 <button 
                   type="submit" 
                   disabled={isSubmitting || !selectedProduct}
-                  className="btn-premium w-full flex items-center justify-center gap-2"
+                  className="btn-premium w-full !py-6 flex items-center justify-center gap-3 shadow-2xl shadow-premium-pink/20"
                 >
-                  {isSubmitting ? <Loader2 className="w-5 h-5 animate-spin" /> : 'Finalizar Venda'}
+                  {isSubmitting ? (
+                    <Loader2 className="w-5 h-5 animate-spin" />
+                  ) : (
+                    <>
+                      <ShoppingCart className="w-5 h-5" />
+                      Finalizar Venda de Luxo
+                    </>
+                  )}
                 </button>
               </form>
             </motion.div>
