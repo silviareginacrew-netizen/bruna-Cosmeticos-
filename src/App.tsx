@@ -9,7 +9,6 @@ import Clients from './pages/Clients';
 import Sales from './pages/Sales';
 import Consortium from './pages/Consortium';
 import Cashier from './pages/Cashier';
-import Catalog from './pages/Catalog';
 import Layout from './components/layout/Layout';
 import { Loader2 } from 'lucide-react';
 
@@ -83,7 +82,6 @@ export default function App() {
           <Route path="/vendas" element={<Sales />} />
           <Route path="/consorcio" element={<Consortium />} />
           <Route path="/caixa" element={<Cashier />} />
-          <Route path="/catalogo" element={<Catalog />} />
         </Route>
 
         <Route path="*" element={<Navigate to="/" />} />
