@@ -20,7 +20,6 @@ export interface Product {
   sellPrice: number;
   quantity: number;
   minQuantity: number;
-  imageUrl?: string;
   observations?: string;
   updatedAt: string;
 }
@@ -45,6 +44,7 @@ export interface Sale {
   totalValue: number;
   paymentMethod: string;
   brand: Brand;
+  status: 'pendente' | 'entregue' | 'cancelado';
   date: string;
 }
 

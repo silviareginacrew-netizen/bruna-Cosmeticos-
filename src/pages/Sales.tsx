@@ -94,12 +94,10 @@ export default function Sales() {
     try {
       if (!selectedProduct) throw new Error('Selecione um produto');
       if (quantity <= 0) throw new Error('A quantidade deve ser maior que zero');
-      if (quantity > selectedProduct.quantity && !editingSale) {
-        throw new Error(`Estoque insuficiente. Disponível: ${selectedProduct.quantity}`);
-      }
-
-      const totalValue = selectedProduct.sellPrice * quantity;
+      
       const userId = auth.currentUser.uid;
+      const totalValue = selectedProduct.sellPrice * quantity;
+      const status = 'entregue'; // By default, a sale is delivered in this simple system
 
       await runTransaction(db, async (transaction) => {
         const productRef = doc(db, 'users', userId, 'inventory', selectedProduct.id);
@@ -111,7 +109,8 @@ export default function Sales() {
 
         // 1. Handle Sales Record
         if (editingSale) {
-          // Calculate stock difference for editing
+          // If editing, we need to handle the stock difference and status
+          // For simplicity in this "simple" version, we keep confirmed sales as delivered
           const stockDiff = editingSale.quantity - quantity;
           const newStock = currentStock + stockDiff;
           
@@ -130,7 +129,7 @@ export default function Sales() {
             updatedAt: serverTimestamp()
           });
 
-          transaction.set(productRef, { quantity: newStock, updatedAt: serverTimestamp() }, { merge: true });
+          transaction.update(productRef, { quantity: newStock, updatedAt: serverTimestamp() });
         } else {
           if (currentStock < quantity) throw new Error("Estoque insuficiente!");
 
@@ -146,13 +145,14 @@ export default function Sales() {
             totalValue,
             paymentMethod,
             brand: selectedProduct.brand,
+            status, // 'entregue'
             date: new Date().toISOString(),
             createdAt: serverTimestamp(),
             updatedAt: serverTimestamp()
           });
 
           // 2. Update Inventory
-          transaction.set(productRef, { quantity: currentStock - quantity, updatedAt: serverTimestamp() }, { merge: true });
+          transaction.update(productRef, { quantity: currentStock - quantity, updatedAt: serverTimestamp() });
 
           // 3. Update Transaction (Cashier)
           const transColRef = collection(db, 'users', userId, 'transactions');
@@ -161,7 +161,7 @@ export default function Sales() {
             type: 'entry',
             brand: selectedProduct.brand,
             value: totalValue,
-            description: `Venda: ${selectedProduct.name} x${quantity} (${selectedClient?.name || 'Avulsa'})`,
+            description: `Venda: ${selectedProduct.name} x${quantity}`,
             date: new Date().toISOString(),
             createdAt: serverTimestamp()
           });
@@ -269,7 +269,17 @@ export default function Sales() {
                   <div className="flex-1 min-w-0">
                     <div className="flex justify-between items-start mb-1 gap-2">
                       <h3 className="font-display text-lg sm:text-xl text-white truncate italic">{sale.productName}</h3>
-                      <p className="font-display text-xl text-premium-pink shrink-0">R$ {sale.totalValue.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}</p>
+                      <div className="text-right shrink-0">
+                        <p className="font-display text-xl text-premium-pink">R$ {sale.totalValue.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}</p>
+                        <span className={cn(
+                          "text-[8px] uppercase tracking-tighter px-2 py-0.5 rounded-full font-bold",
+                          sale.status === 'entregue' ? "bg-green-500/20 text-green-400" : 
+                          sale.status === 'pendente' ? "bg-premium-pink/20 text-premium-pink" : 
+                          "bg-red-500/20 text-red-400"
+                        )}>
+                          {sale.status || 'entregue'}
+                        </span>
+                      </div>
                     </div>
                     
                     <div className="flex items-center gap-3 sm:gap-4 text-[8px] sm:text-[10px] uppercase tracking-widest text-white/30 font-bold">

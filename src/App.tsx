@@ -41,10 +41,6 @@ export default function App() {
       <Routes>
         <Route path="/login" element={!user ? <Login /> : <Navigate to="/" />} />
         
-        {/* Public Catalog */}
-        <Route path="/app/:businessSlug" element={<Catalog />} />
-        <Route path="/catalogo/:businessSlug" element={<Catalog />} />
-
         {/* Private Routes */}
         <Route element={user ? <Layout /> : <Navigate to="/login" />}>
           <Route path="/" element={<Dashboard />} />
@@ -55,6 +51,7 @@ export default function App() {
           <Route path="/vendas" element={<Sales />} />
           <Route path="/consorcio" element={<Consortium />} />
           <Route path="/caixa" element={<Cashier />} />
+          <Route path="/catalogo" element={<Catalog />} />
         </Route>
 
         <Route path="*" element={<Navigate to="/" />} />

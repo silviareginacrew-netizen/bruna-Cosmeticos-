@@ -71,24 +71,15 @@ export default function Dashboard() {
   const navigate = useNavigate();
   const [loading, setLoading] = useState(true);
   const [metrics, setMetrics] = useState({
+    todaySales: 0,
     monthlySales: 0,
-    debtorsCount: 0,
-    lowStock: 0,
     cashInHand: 0,
-    activeConsortiums: 0,
-    overdueInstallments: 0
+    lowStock: 0,
+    pendingPayments: 0,
+    pendingOrders: 0
   });
 
-  const [businessName, setBusinessName] = useState('Sua Loja');
-  const [copied, setCopied] = useState(false);
-
-  const copyCatalogLink = () => {
-    if (!auth.currentUser) return;
-    const url = `${window.location.origin}/catalogo/${auth.currentUser.uid}`;
-    navigator.clipboard.writeText(url);
-    setCopied(true);
-    setTimeout(() => setCopied(false), 2000);
-  };
+  const [businessName, setBusinessName] = useState('Bruna Cosméticos');
 
   useEffect(() => {
     if (!auth.currentUser) {
@@ -97,6 +88,10 @@ export default function Dashboard() {
     }
     const userId = auth.currentUser.uid;
 
+    const today = new Date();
+    const todayStr = today.toISOString().split('T')[0];
+    const firstDayOfMonth = new Date(today.getFullYear(), today.getMonth(), 1).toISOString();
+
     // 0. Business Name
     getDoc(doc(db, 'users', userId)).then(snap => {
       if (snap.exists() && snap.data().businessName) {
@@ -104,70 +99,51 @@ export default function Dashboard() {
       }
     });
 
-    const today = new Date();
-    const firstDayOfMonth = new Date(today.getFullYear(), today.getMonth(), 1).toISOString();
-
     // 1. Low stock
-    const stockQuery = query(collection(db, 'users', userId, 'inventory'), where('quantity', '<=', 5));
-    const unsubStock = onSnapshot(stockQuery, (snap) => {
+    const unsubStock = onSnapshot(query(collection(db, 'users', userId, 'inventory'), where('quantity', '<=', 3)), (snap) => {
       setMetrics(prev => ({ ...prev, lowStock: snap.size }));
     });
 
-    // 2. Active Consortiums
-    const consortiumQuery = query(collection(db, 'users', userId, 'consortiums'), where('status', '==', 'active'));
-    const unsubConsortium = onSnapshot(consortiumQuery, (snap) => {
-      setMetrics(prev => ({ ...prev, activeConsortiums: snap.size }));
-    });
+    // 2. Sales (Today & Month & Pending)
+    const unsubSales = onSnapshot(collection(db, 'users', userId, 'sales'), (snap) => {
+      let todayTotal = 0;
+      let monthTotal = 0;
+      let pendingStatus = 0;
 
-    // 3. Monthly Sales
-    const salesQuery = query(
-      collection(db, 'users', userId, 'sales'),
-      where('date', '>=', firstDayOfMonth)
-    );
-    const unsubSales = onSnapshot(salesQuery, (snap) => {
-      const total = snap.docs.reduce((acc, doc) => acc + (doc.data().totalValue || 0), 0);
-      setMetrics(prev => ({ ...prev, monthlySales: total }));
-    });
-
-    // 4. Cash in Hand (Balance)
-    const transQuery = query(collection(db, 'users', userId, 'transactions'));
-    const unsubTrans = onSnapshot(transQuery, (snap) => {
-      const balance = snap.docs.reduce((acc, doc) => {
+      snap.docs.forEach(doc => {
         const data = doc.data();
-        return acc + (data.type === 'entry' ? data.value : -data.value);
-      }, 0);
+        const saleDate = data.date || '';
+        if (saleDate.startsWith(todayStr)) todayTotal += (data.totalValue || 0);
+        if (saleDate >= firstDayOfMonth) monthTotal += (data.totalValue || 0);
+        if (data.status === 'pendente') pendingStatus++;
+      });
+      
+      setMetrics(prev => ({ ...prev, todaySales: todayTotal, monthlySales: monthTotal, pendingOrders: pendingStatus }));
+    });
+
+    // 3. Transactions (Cashier Balance & Pending Payments)
+    const unsubTrans = onSnapshot(collection(db, 'users', userId, 'transactions'), (snap) => {
+      let balance = 0;
+      snap.docs.forEach(doc => {
+        const data = doc.data();
+        balance += (data.type === 'entry' ? data.value : -data.value);
+      });
       setMetrics(prev => ({ ...prev, cashInHand: balance }));
     });
 
-    // 5. Overdue / Debtors (Checking all consortiums' installments)
-    // Optimized to avoid nested onSnapshot listeners
-    const installmentsQuery = query(collectionGroup(db, 'installments'), where('status', '==', 'pending'));
-    // Note: collectionGroup requires an index, but we can't easily set that up here.
-    // Instead, we'll stick to a more controlled fetch or a single listener if possible.
-    // Given the constraints, let's just listen to all consortiums and do a batch check.
-    
-    const allConsortiumsQuery = query(collection(db, 'users', userId, 'consortiums'));
-    const unsubAllCons = onSnapshot(allConsortiumsQuery, async (snap) => {
-      let count = 0;
-      const now = new Date().toISOString();
-      
-      // We'll use a simple approach: just get the count from the subcollections once when consortiums change
-      // This is slightly less "real-time" than nested listeners but way safer.
-      for (const conDoc of snap.docs) {
-        const insSnap = await getDocs(query(collection(db, 'users', userId, 'consortiums', conDoc.id, 'installments'), where('status', '==', 'pending')));
-        count += insSnap.docs.filter(d => d.data().dueDate < now).length;
-      }
-      setMetrics(prev => ({ ...prev, overdueInstallments: count }));
+    // 4. Clients Debt
+    const unsubClients = onSnapshot(collection(db, 'users', userId, 'clients'), (snap) => {
+      const debt = snap.docs.reduce((acc, doc) => acc + (doc.data().totalDebt || 0), 0);
+      setMetrics(prev => ({ ...prev, pendingPayments: debt }));
     });
 
     setLoading(false);
 
     return () => {
       unsubStock();
-      unsubConsortium();
       unsubSales();
       unsubTrans();
-      unsubAllCons();
+      unsubClients();
     };
   }, [auth.currentUser]);
 
@@ -175,7 +151,7 @@ export default function Dashboard() {
      return (
         <div className="flex flex-col items-center justify-center p-20 gap-4 min-h-[60vh]">
           <Loader2 className="w-10 h-10 animate-spin text-premium-pink" />
-          <p className="text-[10px] uppercase font-black tracking-[0.3em] text-white/20">Carregando painel...</p>
+          <p className="text-[10px] uppercase font-black tracking-[0.3em] text-white/20">Acessando sistema...</p>
         </div>
      );
   }
@@ -184,107 +160,112 @@ export default function Dashboard() {
     new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(val);
 
   return (
-    <div className="space-y-10 pb-10">
-      <header className="flex flex-col gap-6">
-        <div className="flex items-center justify-between">
-          <div>
-            <h1 className="text-4xl font-display font-semibold text-pink-gradient mb-1 uppercase tracking-tighter">{businessName}</h1>
-            <p className="text-white/40 text-[10px] uppercase font-black tracking-[0.4em]">Seu império de beleza pessoal</p>
-          </div>
-          <button 
-            onClick={copyCatalogLink}
-            className="w-14 h-14 bg-white/5 border border-white/5 rounded-2xl flex items-center justify-center hover:bg-premium-pink transition-all duration-700 group shadow-xl"
-          >
-            {copied ? <Check className="w-6 h-6 text-black" /> : <Share2 className="w-6 h-6 text-premium-pink group-hover:text-black" />}
-          </button>
+    <div className="space-y-8 pb-20">
+      <header className="flex items-center justify-between">
+        <div>
+          <h1 className="text-3xl font-bold text-white mb-1">{businessName}</h1>
+          <p className="text-white/40 text-[10px] uppercase font-black tracking-[0.2em]">Painel do Representante</p>
         </div>
-
-        {/* Brand Selection / Quick Access */}
-        <div className="grid grid-cols-2 gap-4">
-          <button 
-            onClick={() => navigate(`/catalogo/${auth.currentUser?.uid}?tab=boticario`)}
-            className="card-premium bg-gradient-to-br from-dark-surface to-premium-pink/5 border-white/5 flex flex-col items-center justify-center p-8 gap-4 group hover:border-premium-pink/40 transition-all duration-500 overflow-hidden relative"
-          >
-            <div className="absolute -right-4 -top-4 w-12 h-12 bg-premium-pink/5 rounded-full blur-2xl group-hover:scale-150 transition-transform" />
-            <Package className="w-8 h-8 text-premium-pink mb-1" />
-            <span className="font-display text-xl text-white">O Boticário</span>
-            <span className="text-[8px] uppercase tracking-[0.25em] text-white/20 font-black">Vitrine Pública</span>
-          </button>
-          <button 
-            onClick={() => navigate(`/catalogo/${auth.currentUser?.uid}?tab=marykay`)}
-            className="card-premium bg-gradient-to-br from-dark-surface to-white/5 border-white/5 flex flex-col items-center justify-center p-8 gap-4 group hover:border-white/20 transition-all duration-500 overflow-hidden relative"
-          >
-            <Package className="w-8 h-8 text-white/40 mb-1" />
-            <span className="font-display text-xl text-white">Mary Kay</span>
-            <span className="text-[8px] uppercase tracking-[0.25em] text-white/20 font-black">Vitrine Pública</span>
-          </button>
+        <div className="w-12 h-12 rounded-full bg-premium-pink/20 flex items-center justify-center border border-premium-pink/20">
+          <User className="text-premium-pink w-6 h-6" />
         </div>
       </header>
 
-      <section className="grid grid-cols-2 lg:grid-cols-3 gap-4 h-fit">
-        <div className="col-span-2 lg:col-span-1">
-          <MetricCard 
-            title="Vendas Mensais" 
-            value={formatCurrency(metrics.monthlySales)} 
-            icon={TrendingUp} 
-            color="gold"
-          />
-        </div>
-        <MetricCard 
-          title="Saldo Caixa" 
-          value={formatCurrency(metrics.cashInHand)} 
-          icon={DollarSign} 
-          color="white"
-        />
-        <MetricCard 
-          title="Consórcios Ativos" 
-          value={metrics.activeConsortiums} 
-          icon={Users} 
-          color="gold"
-        />
-        <MetricCard 
-          title="Estoque Crítico" 
-          value={metrics.lowStock} 
-          icon={AlertCircle} 
-          color="pink"
-        />
-        <MetricCard 
-          title="Parcelas Vencidas" 
-          value={metrics.overdueInstallments} 
-          icon={Calendar} 
-          color="pink"
-        />
-      </section>
-
-      <div className="space-y-6">
-        <h3 className="font-display text-2xl px-1">Alertas do Sistema</h3>
-        <div className="space-y-3">
-          {metrics.lowStock === 0 && metrics.overdueInstallments === 0 ? (
-            <div className="p-8 text-center border border-dashed border-white/5 rounded-3xl opacity-20">
-              <Check className="w-10 h-10 mx-auto mb-2 text-green-400" />
-              <p className="text-[10px] uppercase font-black tracking-widest">Nenhum alerta pendente</p>
+      {/* Primary Metrics - Visual Focus */}
+      <div className="grid grid-cols-1 gap-4">
+        <div className="bg-gradient-to-br from-premium-pink to-pink-600 p-6 rounded-[2rem] shadow-xl shadow-pink-500/10">
+          <div className="flex justify-between items-start mb-6">
+            <div className="bg-white/20 p-3 rounded-2xl">
+              <TrendingUp className="w-6 h-6 text-white" />
             </div>
-          ) : (
-            <>
-              {metrics.lowStock > 0 && (
-                <motion.div 
-                  whileHover={{ x: 5 }}
-                  className="p-5 rounded-2xl border border-pink-500/20 bg-pink-500/5 text-red-100 flex items-center gap-4 transition-all"
-                >
-                  <AlertCircle className="w-5 h-5 shrink-0 text-red-400" />
-                  <p className="text-sm font-medium tracking-wide">Existem {metrics.lowStock} itens com estoque baixo.</p>
-                </motion.div>
-              )}
-              {metrics.overdueInstallments > 0 && (
-                <motion.div 
-                  whileHover={{ x: 5 }}
-                  className="p-5 rounded-2xl border border-red-500/20 bg-red-500/5 text-red-100 flex items-center gap-4 transition-all"
-                >
-                  <Calendar className="w-5 h-5 shrink-0 text-red-400" />
-                  <p className="text-sm font-medium tracking-wide">Existem {metrics.overdueInstallments} parcelas vencidas.</p>
-                </motion.div>
-              )}
-            </>
+            <span className="text-[10px] uppercase font-black tracking-widest text-white/60">Vendas Hoje</span>
+          </div>
+          <p className="text-3xl font-bold text-white mb-1">{formatCurrency(metrics.todaySales)}</p>
+          <p className="text-white/60 text-xs font-medium">Mês: {formatCurrency(metrics.monthlySales)}</p>
+        </div>
+
+        <div className="grid grid-cols-2 gap-4">
+          <div className="bg-white/5 border border-white/10 p-5 rounded-[1.5rem]">
+            <div className="text-white/40 mb-2">
+              <DollarSign className="w-5 h-5 text-premium-pink" />
+            </div>
+            <p className="text-lg font-bold text-white">{formatCurrency(metrics.cashInHand)}</p>
+            <p className="text-[9px] uppercase tracking-widest text-white/40 font-bold">Saldo em Caixa</p>
+          </div>
+          <div className="bg-white/5 border border-white/10 p-5 rounded-[1.5rem]">
+            <div className="text-white/40 mb-2">
+              <Users className="w-5 h-5 text-red-400" />
+            </div>
+            <p className="text-lg font-bold text-white">{formatCurrency(metrics.pendingPayments)}</p>
+            <p className="text-[9px] uppercase tracking-widest text-white/40 font-bold">A Receber</p>
+          </div>
+        </div>
+      </div>
+
+      {/* Quick Actions */}
+      <div className="grid grid-cols-2 gap-4">
+        <button 
+          onClick={() => navigate('/vendas')}
+          className="flex flex-col items-center gap-3 p-6 bg-white/5 border border-white/10 rounded-[1.5rem] hover:bg-white/10 transition-all active:scale-95"
+        >
+          <div className="w-12 h-12 bg-premium-pink/10 rounded-2xl flex items-center justify-center">
+            <ShoppingCart className="text-premium-pink w-6 h-6" />
+          </div>
+          <span className="text-xs font-bold text-white/80 uppercase tracking-widest">Nova Venda</span>
+        </button>
+        <button 
+          onClick={() => navigate('/estoque')}
+          className="flex flex-col items-center gap-3 p-6 bg-white/5 border border-white/10 rounded-[1.5rem] hover:bg-white/10 transition-all active:scale-95"
+        >
+          <div className="w-12 h-12 bg-white/10 rounded-2xl flex items-center justify-center">
+            <Package className="text-white/60 w-6 h-6" />
+          </div>
+          <span className="text-xs font-bold text-white/80 uppercase tracking-widest">Estoque</span>
+        </button>
+      </div>
+
+      {/* System Status / Alerts */}
+      <div className="space-y-4">
+        <h3 className="text-[10px] uppercase font-black tracking-[0.3em] text-white/30 px-2 italic">Atenção Necessária</h3>
+        
+        <div className="space-y-2">
+          {metrics.lowStock > 0 && (
+            <div className="flex items-center gap-4 p-4 bg-red-500/5 border border-red-500/10 rounded-2xl">
+              <AlertCircle className="text-red-400 w-5 h-5 shrink-0" />
+              <div className="flex-1">
+                <p className="text-sm font-bold text-white">{metrics.lowStock} itens críticos</p>
+                <p className="text-[10px] text-white/40 uppercase tracking-widest">Reposição de estoque necessária</p>
+              </div>
+              <button 
+                onClick={() => navigate('/estoque')}
+                className="p-2 text-red-100/50 hover:text-red-400"
+              >
+                <ArrowUpRight className="w-5 h-5" />
+              </button>
+            </div>
+          )}
+
+          {metrics.pendingOrders > 0 && (
+            <div className="flex items-center gap-4 p-4 bg-premium-pink/5 border border-premium-pink/10 rounded-2xl">
+              <ShoppingCart className="text-premium-pink w-5 h-5 shrink-0" />
+              <div className="flex-1">
+                <p className="text-sm font-bold text-white">{metrics.pendingOrders} pedidos pendentes</p>
+                <p className="text-[10px] text-white/40 uppercase tracking-widest">Aguardando entrega/pagamento</p>
+              </div>
+              <button 
+                onClick={() => navigate('/vendas')}
+                className="p-2 text-premium-pink/50 hover:text-premium-pink"
+              >
+                <ArrowUpRight className="w-5 h-5" />
+              </button>
+            </div>
+          )}
+
+          {metrics.lowStock === 0 && metrics.pendingOrders === 0 && (
+            <div className="p-8 text-center border border-dashed border-white/5 rounded-3xl">
+              <Check className="w-10 h-10 mx-auto mb-2 text-green-500/20" />
+              <p className="text-[10px] uppercase font-black tracking-widest text-white/10">Tudo em dia por aqui</p>
+            </div>
           )}
         </div>
       </div>

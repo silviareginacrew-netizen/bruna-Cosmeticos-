@@ -44,15 +44,17 @@ service cloud.firestore {
     }
 
     function isValidClient(data) {
-      return data.keys().hasAll(['name']) &&
-             data.name is string && data.name.size() <= 200;
+      return data.keys().hasAll(['name', 'phone']) &&
+             data.name is string && data.name.size() <= 200 &&
+             data.phone is string && data.phone.size() <= 20;
     }
 
     function isValidSale(data) {
-      return data.keys().hasAll(['productId', 'quantity', 'totalValue', 'paymentMethod']) &&
+      return data.keys().hasAll(['productId', 'quantity', 'totalValue', 'paymentMethod', 'status']) &&
              data.productId is string &&
              data.quantity is number && data.quantity > 0 &&
-             data.totalValue is number && data.totalValue >= 0;
+             data.totalValue is number && data.totalValue >= 0 &&
+             data.status in ['pendente', 'entregue', 'cancelado'];
     }
 
     function isValidConsortium(data) {
@@ -81,13 +83,12 @@ service cloud.firestore {
     // --- Collections ---
 
     match /users/{userId} {
-      allow get: if true; // Public profile for catalog
+      allow get: if isOwner(userId);
       allow create: if isOwner(userId) && isValidUser(incoming());
       allow update: if isOwner(userId) && isValidUser(incoming());
       
       match /inventory/{productId} {
-        allow list: if true; // Public catalog
-        allow get: if true; // Public catalog
+        allow list, get: if isOwner(userId);
         allow create: if isOwner(userId) && isValidProduct(incoming());
         allow update: if isOwner(userId) && isValidProduct(incoming());
         allow delete: if isOwner(userId);

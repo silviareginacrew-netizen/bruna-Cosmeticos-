@@ -29,7 +29,6 @@
         "sellPrice": { "type": "number" },
         "quantity": { "type": "number" },
         "minQuantity": { "type": "number" },
-        "imageUrl": { "type": "string" },
         "observations": { "type": "string" },
         "updatedAt": { "type": "string", "format": "date-time" }
       },
@@ -48,7 +47,7 @@
         "totalDebt": { "type": "number" },
         "createdAt": { "type": "string", "format": "date-time" }
       },
-      "required": ["name"]
+      "required": ["name", "phone"]
     },
     "Sale": {
       "title": "Sale Record",
@@ -64,9 +63,10 @@
         "totalValue": { "type": "number" },
         "paymentMethod": { "type": "string" },
         "brand": { "type": "string" },
+        "status": { "type": "string", "enum": ["pendente", "entregue", "cancelado"] },
         "date": { "type": "string", "format": "date-time" }
       },
-      "required": ["productId", "quantity", "totalValue", "paymentMethod"]
+      "required": ["productId", "quantity", "totalValue", "paymentMethod", "status"]
     },
     "Consortium": {
       "title": "Consortium / Plan",

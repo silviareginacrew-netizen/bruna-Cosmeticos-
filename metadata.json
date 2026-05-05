@@ -1,6 +1,6 @@
 {
   "name": "Bruna Cosméticos",
-  "description": "Sistema premium de gestão para consultoras de cosméticos (O Boticário, Mary Kay) com controle de estoque, vendas, clientes e consórcios.",
+  "description": "Sistema simplificado e profissional de gestão para representantes de cosméticos. Controle de estoque por texto, vendas com status, cadastro de clientes e resumo financeiro diário.",
   "requestFramePermissions": [],
   "majorCapabilities": []
 }
