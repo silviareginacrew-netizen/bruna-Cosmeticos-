@@ -35,8 +35,8 @@ export default function Logo({ className, size = 'md' }: LogoProps) {
         </motion.span>
         <div className="absolute -inset-4 bg-premium-pink/5 blur-2xl rounded-full -z-10 group-hover:bg-premium-pink/10 transition-colors duration-1000" />
       </div>
-      <div className="text-[0.45em] tracking-[0.6em] uppercase text-white/20 mt-4 font-sans font-black whitespace-nowrap">
-        Curadoria de Luxo
+      <div className="text-[0.45em] tracking-[0.4em] uppercase text-white/20 mt-4 font-sans font-black whitespace-nowrap">
+        Bruna Cosméticos
       </div>
     </div>
   );

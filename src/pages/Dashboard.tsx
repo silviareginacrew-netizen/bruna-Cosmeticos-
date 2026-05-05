@@ -13,6 +13,7 @@ import {
   doc
 } from 'firebase/firestore';
 import { db, auth } from '../lib/firebase';
+import Logo from '../components/ui/Logo';
 import { Product, Sale, Client, Consortium, Transaction } from '../types';
 import { 
   TrendingUp, 
@@ -92,13 +93,6 @@ export default function Dashboard() {
     const todayStr = today.toISOString().split('T')[0];
     const firstDayOfMonth = new Date(today.getFullYear(), today.getMonth(), 1).toISOString();
 
-    // 0. Business Name
-    getDoc(doc(db, 'users', userId)).then(snap => {
-      if (snap.exists() && snap.data().businessName) {
-        setBusinessName(snap.data().businessName);
-      }
-    });
-
     // 1. Low stock
     const unsubStock = onSnapshot(query(collection(db, 'users', userId, 'inventory'), where('quantity', '<=', 3)), (snap) => {
       setMetrics(prev => ({ ...prev, lowStock: snap.size }));
@@ -161,13 +155,17 @@ export default function Dashboard() {
 
   return (
     <div className="space-y-8 pb-20">
-      <header className="flex items-center justify-between">
-        <div>
-          <h1 className="text-3xl font-bold text-white mb-1">{businessName}</h1>
-          <p className="text-white/40 text-[10px] uppercase font-black tracking-[0.2em]">Painel do Representante</p>
-        </div>
-        <div className="w-12 h-12 rounded-full bg-premium-pink/20 flex items-center justify-center border border-premium-pink/20">
-          <User className="text-premium-pink w-6 h-6" />
+      <header className="flex flex-col items-center justify-center text-center py-10 gap-6 border-b border-white/5 mb-10">
+        <Logo size="lg" className="mb-2" />
+        <div className="space-y-3">
+          <h1 className="text-5xl sm:text-6xl font-display font-medium text-white uppercase tracking-tighter italic">
+            <span className="text-pink-gradient">Bruna</span> Cosméticos
+          </h1>
+          <div className="flex items-center justify-center gap-4">
+            <div className="h-[1px] w-12 bg-premium-pink/20" />
+            <p className="text-white/20 text-[10px] uppercase font-black tracking-[0.4em]">Painel do Representante</p>
+            <div className="h-[1px] w-12 bg-premium-pink/20" />
+          </div>
         </div>
       </header>
 
