@@ -20,47 +20,41 @@ export default function App() {
   const [loadingAuth, setLoadingAuth] = useState(true);
 
   useEffect(() => {
+    console.log("Iniciando monitoramento de autenticação...");
     const unsubscribe = onAuthStateChanged(auth, (u) => {
-      // Simulate/Ensure minimum splash screen time for impact
-      const timer = setTimeout(() => {
-        setUser(u);
-        setLoadingAuth(false);
-      }, 2000);
-      return () => clearTimeout(timer);
+      console.log("Mudança de estado Auth:", u ? `Usuário ${u.uid} logado` : "Nenhum usuário logado");
+      setUser(u);
+      setLoadingAuth(false);
+    }, (error) => {
+      console.error("Erro na autenticação:", error);
+      setLoadingAuth(false);
     });
     return () => unsubscribe();
   }, []);
 
   if (loadingAuth) {
     return (
-      <div className="flex flex-col items-center justify-center min-h-screen bg-dark-bg relative overflow-hidden">
-        {/* Background Ambient Glow */}
+      <div className="flex flex-col items-center justify-center min-h-screen bg-dark-bg relative overflow-hidden" style={{ minHeight: '100vh' }}>
         <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[300px] h-[300px] bg-premium-pink/5 blur-[100px] rounded-full animate-pulse" />
         
         <motion.div
-          initial={{ opacity: 0, scale: 0.9 }}
+          initial={{ opacity: 0, scale: 0.95 }}
           animate={{ opacity: 1, scale: 1 }}
-          transition={{ duration: 1, ease: "easeOut" }}
-          className="relative z-10 text-center space-y-8"
+          className="relative z-10 text-center space-y-10"
         >
           <Logo size="lg" />
-          <div className="space-y-4">
-            <motion.p 
-              initial={{ opacity: 0 }}
-              animate={{ opacity: 0.3 }}
-              transition={{ delay: 0.5, duration: 1 }}
-              className="text-[10px] uppercase font-black tracking-[0.8em] text-white"
-            >
-              Elite Experience
-            </motion.p>
-            <div className="w-48 h-[1px] bg-white/5 mx-auto relative overflow-hidden">
-              <motion.div 
-                initial={{ x: "-100%" }}
-                animate={{ x: "100%" }}
-                transition={{ repeat: Infinity, duration: 1.5, ease: "linear" }}
-                className="absolute inset-0 bg-gradient-to-r from-transparent via-premium-pink/40 to-transparent"
-              />
+          <div className="space-y-6">
+            <div className="flex flex-col items-center gap-4">
+              <div className="w-12 h-12 border-2 border-premium-pink/10 border-t-premium-pink rounded-full animate-spin" />
+              <motion.p 
+                initial={{ opacity: 0 }}
+                animate={{ opacity: 0.4 }}
+                className="text-[10px] uppercase font-black tracking-[0.8em] text-white ml-[0.8em]"
+              >
+                Iniciando Acervo
+              </motion.p>
             </div>
+            <p className="text-[9px] text-white/10 uppercase font-bold tracking-widest italic font-display">Conectando ao sistema de luxo...</p>
           </div>
         </motion.div>
       </div>

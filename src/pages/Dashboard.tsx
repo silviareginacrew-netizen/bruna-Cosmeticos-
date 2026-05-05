@@ -28,7 +28,8 @@ import {
   Share2,
   Check,
   ShoppingCart,
-  Loader2
+  Loader2,
+  Sparkles
 } from 'lucide-react';
 import { motion } from 'framer-motion';
 import { cn } from '../lib/utils';
@@ -87,60 +88,70 @@ export default function Dashboard() {
 
     setLoading(true);
 
-    const today = new Date();
-    const todayStr = today.toISOString().split('T')[0];
-    const firstDayOfMonth = new Date(today.getFullYear(), today.getMonth(), 1).toISOString();
+    try {
+      const today = new Date();
+      const todayStr = today.toISOString().split('T')[0];
+      const firstDayOfMonth = new Date(today.getFullYear(), today.getMonth(), 1).toISOString();
 
-    // 1. Low stock
-    const unsubStock = onSnapshot(query(collection(db, 'users', userId, 'inventory'), where('quantity', '<=', 3)), (snap) => {
-      setMetrics(prev => ({ ...prev, lowStock: snap.size }));
-    });
+      // 1. Low stock
+      const unsubStock = onSnapshot(query(collection(db, 'users', userId, 'inventory'), where('quantity', '<=', 3)), (snap) => {
+        setMetrics(prev => ({ ...prev, lowStock: snap.size }));
+      }, (error) => console.error("Erro Dashboard Inventory:", error));
 
-    // 2. Sales (Today & Month & Pending)
-    const unsubSales = onSnapshot(collection(db, 'users', userId, 'sales'), (snap) => {
-      let todayTotal = 0;
-      let monthTotal = 0;
-      let pendingStatus = 0;
+      // 2. Sales (Today & Month & Pending)
+      const unsubSales = onSnapshot(collection(db, 'users', userId, 'sales'), (snap) => {
+        let todayTotal = 0;
+        let monthTotal = 0;
+        let pendingStatus = 0;
 
-      snap.docs.forEach(doc => {
-        const data = doc.data();
-        const saleDate = data.date || '';
-        if (saleDate.startsWith(todayStr)) todayTotal += (data.totalValue || 0);
-        if (saleDate >= firstDayOfMonth) monthTotal += (data.totalValue || 0);
-        if (data.status === 'pendente') pendingStatus++;
-      });
-      
-      setMetrics(prev => ({ ...prev, todaySales: todayTotal, monthlySales: monthTotal, pendingOrders: pendingStatus }));
-    });
+        snap.docs.forEach(doc => {
+          const data = doc.data();
+          const saleDate = data.date || '';
+          if (saleDate.startsWith(todayStr)) todayTotal += (data.totalValue || 0);
+          if (saleDate >= firstDayOfMonth) monthTotal += (data.totalValue || 0);
+          if (data.status === 'pendente') pendingStatus++;
+        });
+        
+        setMetrics(prev => ({ ...prev, todaySales: todayTotal, monthlySales: monthTotal, pendingOrders: pendingStatus }));
+      }, (error) => console.error("Erro Dashboard Sales:", error));
 
-    // 3. Transactions (Cashier Balance & Pending Payments)
-    const unsubTrans = onSnapshot(collection(db, 'users', userId, 'transactions'), (snap) => {
-      let balance = 0;
-      snap.docs.forEach(doc => {
-        const data = doc.data();
-        balance += (data.type === 'entry' ? data.value : -data.value);
-      });
-      setMetrics(prev => ({ ...prev, cashInHand: balance }));
-    });
+      // 3. Transactions (Cashier Balance & Pending Payments)
+      const unsubTrans = onSnapshot(collection(db, 'users', userId, 'transactions'), (snap) => {
+        let balance = 0;
+        snap.docs.forEach(doc => {
+          const data = doc.data();
+          balance += (data.type === 'entry' ? data.value : -data.value);
+        });
+        setMetrics(prev => ({ ...prev, cashInHand: balance }));
+      }, (error) => console.error("Erro Dashboard Transactions:", error));
 
-    // 4. Clients Debt
-    const unsubClients = onSnapshot(collection(db, 'users', userId, 'clients'), (snap) => {
-      const debt = snap.docs.reduce((acc, doc) => acc + (doc.data().totalDebt || 0), 0);
-      setMetrics(prev => ({ ...prev, pendingPayments: debt }));
-    });
+      // 4. Clients Debt
+      const unsubClients = onSnapshot(collection(db, 'users', userId, 'clients'), (snap) => {
+        const debt = snap.docs.reduce((acc, doc) => acc + (doc.data().totalDebt || 0), 0);
+        setMetrics(prev => ({ ...prev, pendingPayments: debt }));
+      }, (error) => console.error("Erro Dashboard Clients:", error));
 
-    setLoading(false);
+      setLoading(false);
 
-    return () => {
-      unsubStock();
-      unsubSales();
-      unsubTrans();
-      unsubClients();
-    };
+      return () => {
+        unsubStock();
+        unsubSales();
+        unsubTrans();
+        unsubClients();
+      };
+    } catch (error) {
+      console.error("Erro ao configurar listeners do Dashboard:", error);
+      setLoading(false);
+    }
   }, [auth.currentUser]);
 
   if (loading) {
-     return null; // Layout handles splash or we can show a minimal loader
+     return (
+       <div className="flex flex-col items-center justify-center py-32 gap-6">
+         <div className="w-12 h-12 border-2 border-premium-pink/10 border-t-premium-pink rounded-full animate-spin" />
+         <p className="text-[10px] text-white/20 uppercase font-black tracking-[0.4em]">Sincronizando Indicadores</p>
+       </div>
+     );
   }
 
   const formatCurrency = (val: number) => 
