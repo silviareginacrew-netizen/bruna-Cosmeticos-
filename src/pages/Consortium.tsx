@@ -53,11 +53,9 @@ export default function ConsortiumPage() {
   const [isSubmitting, setIsSubmitting] = useState(false);
 
   useEffect(() => {
-    if (!auth.currentUser) {
-      setLoading(false);
-      return;
-    }
+    if (!auth.currentUser) return;
     const userId = auth.currentUser.uid;
+    setLoading(true);
 
     const unsubCons = onSnapshot(query(collection(db, 'users', userId, 'consortiums')), async (snap) => {
       const data = snap.docs.map(doc => ({ id: doc.id, ...doc.data() } as Consortium));

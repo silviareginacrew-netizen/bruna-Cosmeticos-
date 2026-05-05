@@ -17,6 +17,7 @@ import { Product, Sale, Client, Consortium, Transaction } from '../types';
 import { 
   TrendingUp, 
   Users, 
+  User,
   Package, 
   AlertCircle, 
   DollarSign, 
@@ -82,11 +83,10 @@ export default function Dashboard() {
   const [businessName, setBusinessName] = useState('Bruna Cosméticos');
 
   useEffect(() => {
-    if (!auth.currentUser) {
-      setLoading(false);
-      return;
-    }
+    if (!auth.currentUser) return;
     const userId = auth.currentUser.uid;
+
+    setLoading(true);
 
     const today = new Date();
     const todayStr = today.toISOString().split('T')[0];

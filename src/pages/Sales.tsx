@@ -50,11 +50,10 @@ export default function Sales() {
   const [isSubmitting, setIsSubmitting] = useState(false);
 
   useEffect(() => {
-    if (!auth.currentUser) {
-      setLoading(false);
-      return;
-    }
+    if (!auth.currentUser) return;
     const userId = auth.currentUser.uid;
+    
+    setLoading(true);
     
     const timeoutId = setTimeout(() => {
       if (loading) setLoading(false);

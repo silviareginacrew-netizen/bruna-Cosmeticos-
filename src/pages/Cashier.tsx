@@ -37,11 +37,9 @@ export default function Cashier() {
   const [isSubmitting, setIsSubmitting] = useState(false);
 
   useEffect(() => {
-    if (!auth.currentUser) {
-      setLoading(false);
-      return;
-    }
+    if (!auth.currentUser) return;
     const userId = auth.currentUser.uid;
+    setLoading(true);
     
     const unsubTrans = onSnapshot(query(collection(db, 'users', userId, 'transactions'), orderBy('date', 'desc'), limit(50)), (snap) => {
       setTransactions(snap.docs.map(doc => ({ id: doc.id, ...doc.data() } as Transaction)));

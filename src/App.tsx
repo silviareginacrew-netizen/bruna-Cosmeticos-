@@ -15,23 +15,25 @@ import { Loader2 } from 'lucide-react';
 
 export default function App() {
   const [user, setUser] = useState<FirebaseUser | null>(null);
-  const [loading, setLoading] = useState(true);
+  const [loadingAuth, setLoadingAuth] = useState(true);
 
   useEffect(() => {
     const unsubscribe = onAuthStateChanged(auth, (u) => {
-      setUser(u);
-      setLoading(false);
+      if (u) {
+        setUser(u);
+      } else {
+        setUser(null);
+      }
+      setLoadingAuth(false);
     });
     return () => unsubscribe();
   }, []);
 
-  if (loading) {
+  if (loadingAuth) {
     return (
-      <div className="flex items-center justify-center min-h-screen bg-black text-center px-10">
-        <div className="space-y-4">
-          <Loader2 className="w-10 h-10 text-premium-pink animate-spin mx-auto" />
-          <p className="text-[10px] uppercase font-black tracking-[0.5em] text-white/20">Bruna Cosméticos</p>
-        </div>
+      <div className="flex flex-col items-center justify-center min-h-screen bg-black gap-4">
+        <Loader2 className="w-10 h-10 text-premium-pink animate-spin" />
+        <p className="text-[10px] uppercase font-black tracking-[0.5em] text-white/20">Carregando sistema...</p>
       </div>
     );
   }
